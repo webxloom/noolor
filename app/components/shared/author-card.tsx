@@ -28,7 +28,7 @@ export function AuthorCard({ author }: AuthorCardProps) {
       .toUpperCase()
       .substring(0, 2);
   };
-
+  console.log("author", author);
   return (
     <Link href={`/authors/${author.slug}`}>
       <Card className="h-full hover-elevate transition-all cursor-pointer group text-center p-6 flex flex-col items-center">

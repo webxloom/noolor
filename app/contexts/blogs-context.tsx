@@ -1,8 +1,7 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-
-import { useAuthorBlogs } from "@/app/hooks/use-author-blogs";
+import { useAuthorBlogs } from "../hooks/author/use-author-blogs";
 
 type AuthorBlogsContextValue = ReturnType<typeof useAuthorBlogs>;
 

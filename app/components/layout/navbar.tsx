@@ -2,15 +2,14 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
-  Search,
   BookOpen,
   PenTool,
-  Library,
-  Users,
   Menu,
   X,
   Newspaper,
   Globe,
+  BadgeIndianRupee,
+  Calendar,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import { Button } from "../ui/button";
@@ -23,81 +22,76 @@ import {
 } from "../ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { mapSessionUser, type SessionUser } from "@/lib/supabase/session-user";
+import { useProfileSession } from "@/app/hooks/use-profile-session";
+import enMessages from "@/language-messages/en.json";
+import taMessages from "@/language-messages/ta.json";
 
-function NavLinks() {
+export type SupportedLanguage = "en" | "ta";
+
+function NavLinks({ messages }: { messages: (typeof enMessages)["navbar"] }) {
   return (
     <>
-      <Link
-        href="/search"
-        className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
-      >
-        <Search className="h-4 w-4" /> Explore
-      </Link>
       <Link
         href="/books"
         className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
       >
-        <BookOpen className="h-4 w-4" /> Books
+        <BookOpen className="h-4 w-4" /> {messages.books}
       </Link>
       <Link
         href="/authors"
         className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
       >
-        <PenTool className="h-4 w-4" /> Authors
+        <PenTool className="h-4 w-4" /> {messages.authors}
       </Link>
       <Link
         href="/blogs"
         className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
       >
-        <Newspaper className="h-4 w-4" /> Blogs
+        <Newspaper className="h-4 w-4" /> {messages.blogs}
       </Link>
-      {/* <Link
+      <Link
+        href="/events"
+        className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
+      >
+        <Calendar className="h-4 w-4" /> {messages.events}
+      </Link>
+      <Link
         href="/publications"
         className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
       >
         <Library className="h-4 w-4" /> Publications
       </Link>
-      <Link
+      {/* <Link
         href="/groups"
         className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
       >
         <Users className="h-4 w-4" /> Groups
       </Link> */}
+      <Link
+        href="/pricing"
+        className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
+      >
+        <BadgeIndianRupee className="h-4 w-4" /> {messages.pricing}
+      </Link>
     </>
   );
 }
 
 export function Navbar() {
   const router = useRouter();
-  const [user, setUser] = useState<SessionUser | null>(null);
-  const [language, setLanguage] = useState<"en" | "ta">("en");
+  const { profileUser, isLoading } = useProfileSession();
+  const [language, setLanguage] = useState<SupportedLanguage>("en");
+  const messages = language === "en" ? enMessages.navbar : taMessages.navbar;
 
   useEffect(() => {
-    const supabase = createBrowserSupabaseClient();
-    let isMounted = true;
+    const storedLanguage = window.localStorage.getItem("preferredLanguage");
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (isMounted) {
-        setUser(mapSessionUser(data.session));
-      }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (isMounted) {
-        setUser(mapSessionUser(session));
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
+    if (storedLanguage === "en" || storedLanguage === "ta") {
+      setLanguage(storedLanguage);
+    }
   }, []);
 
-  const isAuthenticated = !!user;
+  const isAuthenticated = !!profileUser;
 
   const getInitials = (name: string) => {
     return name
@@ -112,9 +106,13 @@ export function Navbar() {
     const supabase = createBrowserSupabaseClient();
 
     await supabase.auth.signOut();
-    setUser(null);
     router.push("/login");
     router.refresh();
+  };
+
+  const handleLanguageChange = (lang: SupportedLanguage) => {
+    setLanguage(lang);
+    localStorage.setItem("preferredLanguage", lang);
   };
 
   return (
@@ -125,23 +123,23 @@ export function Navbar() {
             <summary className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
               <Menu className="h-5 w-5 group-open:hidden" />
               <X className="hidden h-5 w-5 group-open:block" />
-              <span className="sr-only">Toggle navigation menu</span>
+              <span className="sr-only">{messages.toggleMenu}</span>
             </summary>
             <div className="absolute left-0 top-[calc(100%+0.75rem)] w-[300px] rounded-xl border bg-background p-6 shadow-lg">
               <div className="flex flex-col gap-6">
-                <NavLinks />
+                <NavLinks messages={messages} />
               </div>
             </div>
           </details>
 
           <Link href="/" className="flex items-center gap-2">
             <span className="font-serif text-xl font-bold tracking-tight text-primary">
-              நூலோர்
+              {messages.brand}
             </span>
           </Link>
 
           <nav className="hidden md:flex gap-6">
-            <NavLinks />
+            <NavLinks messages={messages} />
           </nav>
         </div>
 
@@ -155,19 +153,21 @@ export function Navbar() {
               >
                 <Globe className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">
-                  {language === "en" ? "English" : "தமிழ்"}
+                  {language === "en"
+                    ? messages.language
+                    : messages.languageTamil}
                 </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                onClick={() => setLanguage("en")}
+                onClick={() => handleLanguageChange("en")}
                 className={`cursor-pointer ${language === "en" ? "bg-accent" : ""}`}
               >
                 <span className="mr-2">🇬🇧</span> English
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => setLanguage("ta")}
+                onClick={() => handleLanguageChange("ta")}
                 className={`cursor-pointer ${language === "ta" ? "bg-accent" : ""}`}
               >
                 <span className="mr-2">🇮🇳</span> தமிழ் (Tamil)
@@ -175,74 +175,80 @@ export function Navbar() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {isAuthenticated && user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="relative h-8 w-8 rounded-full"
-                >
-                  <Avatar className="h-8 w-8">
-                    {user.avatar_url && (
-                      <AvatarImage
-                        src={user.avatar_url || undefined}
-                        alt={user.name}
-                      />
-                    )}
-                    <AvatarFallback className="bg-primary/10 text-primary">
-                      {getInitials(user.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{user.name}</p>
-                    <p className="w-[200px] truncate text-sm text-muted-foreground">
-                      {user.email}
-                    </p>
-                  </div>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => router.push("/dashboard")}
-                  className="cursor-pointer"
-                >
-                  Dashboard
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => router.push("/profile")}
-                  className="cursor-pointer"
-                >
-                  Profile Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="text-destructive focus:bg-destructive/10 cursor-pointer"
-                >
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+          {isLoading ? (
+            <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
           ) : (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                onClick={() => router.push("/login")}
-                className="hidden sm:flex cursor-pointer"
-              >
-                Log in
-              </Button>
-              <Button
-                className="cursor-pointer"
-                onClick={() => router.push("/register")}
-              >
-                Sign up
-              </Button>
-              {/* <Button onClick={() => setLocation("/register")}>Sign up</Button> */}
-            </div>
+            <>
+              {isAuthenticated && profileUser ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="relative h-8 w-8 rounded-full"
+                    >
+                      <Avatar className="h-8 w-8">
+                        {profileUser.avatar_url && (
+                          <AvatarImage
+                            src={profileUser.avatar_url || undefined}
+                            alt={profileUser.name}
+                          />
+                        )}
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          {getInitials(profileUser.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <div className="flex items-center justify-start gap-2 p-2">
+                      <div className="flex flex-col space-y-1 leading-none">
+                        <p className="font-medium">{profileUser.name}</p>
+                        <p className="w-[200px] truncate text-sm text-muted-foreground">
+                          {profileUser.role.charAt(0).toUpperCase() +
+                            profileUser.role.slice(1)}
+                        </p>
+                      </div>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => router.push("/dashboard")}
+                      className="cursor-pointer"
+                    >
+                      {messages.dashboard}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => router.push("/profile")}
+                      className="cursor-pointer"
+                    >
+                      {messages.profileSettings}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="text-destructive focus:bg-destructive/10 cursor-pointer"
+                    >
+                      {messages.logOut}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push("/login")}
+                    className="hidden sm:flex cursor-pointer"
+                  >
+                    {messages.logIn}
+                  </Button>
+                  <Button
+                    className="cursor-pointer"
+                    onClick={() => router.push("/register")}
+                  >
+                    {messages.signUp}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

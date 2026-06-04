@@ -1,0 +1,29 @@
+{
+  "navbar": {
+    "brand": "Noolor",
+    "books": "Books",
+    "authors": "Authors",
+    "blogs": "Blogs",
+    "events": "Events",
+    "pricing": "Pricing",
+    "language": "English",
+    "languageTamil": "தமிழ்",
+    "toggleMenu": "Toggle navigation menu",
+    "dashboard": "Dashboard",
+    "profileSettings": "Profile Settings",
+    "logOut": "Log out",
+    "logIn": "Log in",
+    "signUp": "Sign up"
+  },
+  "hero-section": {
+    "badge": "Tamil Literary Platform",
+    "headline": "Discover",
+    "subHeadline": ["Writers", "Books", "Events", "Blogs"],
+    "tagline": "✦ A digital home for every Writer. A direct bridge to every reader. ✦",
+    "cta1": "Explore Books",
+    "cta2": "Become a writer",
+    "countBooks": "Books",
+    "countWriters": "Authors",
+    "countReaders": "Readers"
+  }
+}

@@ -1,22 +1,22 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Input } from "@/app/components/ui/input";
-import { Button } from "@/app/components/ui/button";
-import { Skeleton } from "@/app/components/ui/skeleton";
-import { Search, Filter } from "lucide-react";
-import { AuthorCard } from "@/app/components/shared/author-card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/app/components/ui/select";
-import { getAuthorsQuery } from "@/lib/db/authors/authors-queries";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { Search } from "lucide-react";
+
+// Types / Queries
+import {
+  getAuthorsQuery,
+  getBooksCountForAuthors,
+} from "@/lib/db/authors/authors-queries";
 import type { AuthorRecord } from "@/lib/types/authors";
 
-type AuthorListItem = {
+// Components
+import { Button } from "@/app/components/ui/button";
+import { Skeleton } from "@/app/components/ui/skeleton";
+import { AuthorCard } from "@/app/components/shared/author-card";
+import AuthorsSearch from "@/app/components/authors/authors-search";
+
+export type AuthorListItem = {
   id: string;
   name: string;
   slug: string;
@@ -28,15 +28,20 @@ type AuthorListItem = {
   genres: string[];
 };
 
-function mapAuthorToListItem(author: AuthorRecord): AuthorListItem {
+function mapAuthorToListItem(
+  author: AuthorRecord & {
+    profile?: { name?: string; avatar_url?: string } | null;
+    book_count?: number;
+  },
+): AuthorListItem {
   return {
-    avatarUrl: author.avatar_url ?? undefined,
-    bookCount: 0,
+    avatarUrl: author.profile?.avatar_url ?? undefined,
+    bookCount: author.book_count ?? 0,
     genres: author.genres ?? [],
     id: author.id,
     languages: author.languages ?? [],
     location: author.location ?? undefined,
-    name: author.name,
+    name: author.profile?.name ?? "",
     slug: author.slug,
     reviewCount: 0,
   };
@@ -46,10 +51,13 @@ export default function Authors() {
   const [authors, setAuthors] = useState<AuthorListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [language, setLanguage] = useState<string>("all");
-  const [genre, setGenre] = useState<string>("all");
+  const [filters, setFilters] = useState({
+    search: "",
+    debouncedSearch: "",
+    language: "all",
+    genre: "all",
+  });
+  const { search, debouncedSearch, language, genre } = filters;
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -69,7 +77,11 @@ export default function Authors() {
         setLoadError(error.message);
         setAuthors([]);
       } else {
-        setAuthors((data ?? []).map(mapAuthorToListItem));
+        const dataWithCount = await getBooksCountForAuthors(
+          supabase,
+          data ?? [],
+        );
+        setAuthors((dataWithCount ?? []).map(mapAuthorToListItem));
       }
 
       setIsLoading(false);
@@ -81,18 +93,6 @@ export default function Authors() {
       isMounted = false;
     };
   }, []);
-
-  const languageOptions = useMemo(() => {
-    return Array.from(
-      new Set(authors.flatMap((author) => author.languages)),
-    ).sort((left, right) => left.localeCompare(right));
-  }, [authors]);
-
-  const genreOptions = useMemo(() => {
-    return Array.from(new Set(authors.flatMap((author) => author.genres))).sort(
-      (left, right) => left.localeCompare(right),
-    );
-  }, [authors]);
 
   const filteredAuthors = useMemo(() => {
     const normalizedSearch = debouncedSearch.trim().toLowerCase();
@@ -125,14 +125,16 @@ export default function Authors() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setDebouncedSearch(search);
+    setFilters((prev) => ({ ...prev, debouncedSearch: search }));
   };
 
   const handleClearFilters = () => {
-    setSearch("");
-    setDebouncedSearch("");
-    setLanguage("all");
-    setGenre("all");
+    setFilters({
+      search: "",
+      debouncedSearch: "",
+      language: "all",
+      genre: "all",
+    });
   };
 
   return (
@@ -154,77 +156,14 @@ export default function Authors() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
-        <aside className="w-full lg:w-64 space-y-6 flex-shrink-0">
-          <div className="bg-card border rounded-xl p-5 space-y-6">
-            <div>
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Search className="h-4 w-4" /> Search
-              </h3>
-              <form onSubmit={handleSearchSubmit} className="flex gap-2">
-                <Input
-                  placeholder="Names..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="bg-background"
-                />
-                <Button type="submit" size="icon" variant="secondary">
-                  <Search className="h-4 w-4" />
-                </Button>
-              </form>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Filter className="h-4 w-4" /> Filters
-              </h3>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Language</label>
-                  <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="All Languages" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Languages</SelectItem>
-                      {languageOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Genre</label>
-                  <Select value={genre} onValueChange={setGenre}>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="All Genres" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Genres</SelectItem>
-                      {genreOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {(debouncedSearch || language !== "all" || genre !== "all") && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleClearFilters}
-              >
-                Clear Filters
-              </Button>
-            )}
-          </div>
-        </aside>
+        {/* Search */}
+        <AuthorsSearch
+          handleSearchSubmit={handleSearchSubmit}
+          handleClearFilters={handleClearFilters}
+          authors={authors}
+          filters={filters}
+          setFilters={setFilters}
+        />
 
         <div className="flex-1">
           {loadError ? (

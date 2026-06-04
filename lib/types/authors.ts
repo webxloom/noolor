@@ -1,10 +1,3 @@
-export type AuthorProfileUser = {
-  avatarUrl?: string;
-  id: string;
-  language?: string;
-  name: string;
-};
-
 export type AwardFormItem = {
   fileUrl: string;
   title: string;
@@ -26,28 +19,37 @@ export type SocialLinksForm = {
   youtube: string;
 };
 
+export type ProfileFormState = {
+  name: string;
+  phone: string;
+  username: string;
+  contact_email: string;
+  subscription_plan: string;
+};
+
 export type AuthorFormState = {
-  avatarUrl: string;
-  awards: AwardFormItem[];
+  pen_name: string;
+  slug?: string;
+  awards?: AwardFormItem[];
   bio: string;
   genres: string;
   languages: string;
   location: string;
-  name: string;
-  socialLinks: SocialLinksForm;
-  upcomingWorks: UpcomingWorkFormItem[];
+  socialLinks?: SocialLinksForm;
+};
+
+export type PublicationFormState = {
+  slug?: string;
+  awards?: AwardFormItem[];
+  bio: string;
+  location: string;
+  socialLinks?: SocialLinksForm;
 };
 
 export type AuthorAward = {
   title: string;
   year?: number | null;
   fileUrl?: string | null;
-};
-
-export type UpcomingWork = {
-  title: string;
-  description?: string | null;
-  quote?: string | null;
 };
 
 export type AuthorSocialLinks = {
@@ -61,17 +63,23 @@ export type AuthorSocialLinks = {
 
 export type AuthorRecord = {
   id: string;
-  user_id: string;
-  name: string;
+  profile_id: string;
+  pen_name?: string;
   slug: string;
   bio?: string | null;
-  avatar_url?: string | null;
   location?: string | null;
   languages?: string[] | null;
   genres?: string[] | null;
   awards?: AuthorAward[] | null;
-  upcoming_works?: UpcomingWork[] | null;
   social_links?: AuthorSocialLinks | null;
-  rating?: number | null;
-  created_at?: string | null;
+};
+
+export type PublicationRecord = {
+  id: string;
+  profile_id: string;
+  slug: string;
+  bio?: string | null;
+  location?: string | null;
+  awards?: AuthorAward[] | null;
+  social_links?: AuthorSocialLinks | null;
 };

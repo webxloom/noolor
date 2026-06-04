@@ -1,23 +1,30 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export type ProfileRole =
-  | "guest"
   | "reader"
   | "writer"
+  | "scholar"
   | "publication"
   | "admin";
 
 export type ProfileRecord = {
   id: string;
-  name?: string | null;
+  name: string;
+  contact_email: string | null;
   phone: string;
+  username: string;
   role: ProfileRole;
-  is_premium?: boolean | null;
-  avatar_url?: string | null;
-  languages?: string[] | null;
+  subscription_plan: string;
+  avatar_url: string | null;
+  is_active: boolean;
+  is_verified: boolean;
 };
 
 export type ProfileUpdate = Partial<Omit<ProfileRecord, "id">>;
+
+const authorImageBucket = process.env.SUPABASE_BUCKET_NAME ?? "noolor";
+const authorImageFolder = "author-images";
 
 export async function getProfileByIdQuery(
   supabase: SupabaseClient,
@@ -28,6 +35,47 @@ export async function getProfileByIdQuery(
     .select("*")
     .eq("id", profileId)
     .maybeSingle<ProfileRecord>();
+}
+
+// Check if phone number or username already exists and return specific error
+export async function checkExistingProfileQuery(
+  phone: string,
+  username: string,
+) {
+  const supabase: SupabaseClient = createBrowserSupabaseClient();
+
+  const { data: existingProfiles, error: fetchError } = await supabase
+    .from("profiles")
+    .select("id,phone,username")
+    .or(`phone.eq.${phone},username.eq.${username}`);
+
+  if (fetchError) {
+    return { error: fetchError.message };
+  }
+
+  if (existingProfiles && existingProfiles.length > 0) {
+    const phoneExists = existingProfiles.some((p: any) => p.phone === phone);
+    const usernameExists = existingProfiles.some(
+      (p: any) => p.username === username,
+    );
+
+    if (phoneExists && usernameExists) {
+      return { error: "Phone number and username already exist." };
+    }
+
+    if (phoneExists) {
+      return { error: "Phone number already exists." };
+    }
+
+    if (usernameExists) {
+      return { error: "Username already exists." };
+    }
+
+    // Fallback generic message if we couldn't determine which field matched
+    return { error: "Phone number or username already exists." };
+  }
+
+  return { error: null };
 }
 
 export async function createProfileQuery(
@@ -55,4 +103,79 @@ export async function deleteProfileQuery(
   profileId: string,
 ) {
   return supabase.from("profiles").delete().eq("id", profileId);
+}
+
+// Upload image to Supabase Storage and return the public URL
+function getStoragePath(publicUrl: string, bucket: string): string | null {
+  const marker = `/object/public/${bucket}/`;
+  const index = publicUrl.indexOf(marker);
+
+  if (index === -1) return null;
+
+  return publicUrl.substring(index + marker.length);
+}
+
+export async function uploadProfileImageQuery(
+  profileId: string,
+  file: File,
+  fileNamePrefix: string,
+) {
+  const supabase = createBrowserSupabaseClient();
+
+  try {
+    // Check if profile id has an existing avatar and remove it if so
+    const { data: existingAvatar, error: existingError } = await supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", profileId)
+      .single();
+
+    if (existingError) {
+      console.error("Error fetching existing avatar:", existingError);
+    }
+    const prevUrl = existingAvatar?.avatar_url ?? null;
+
+    if (prevUrl) {
+      try {
+        const prevPath = getStoragePath(prevUrl, authorImageBucket);
+        if (prevPath && prevPath !== fileNamePrefix) {
+          await supabase.storage.from(authorImageBucket).remove([prevPath]);
+        }
+      } catch (e) {
+        console.warn("Failed to remove previous avatar from storage:", e);
+      }
+    }
+
+    // Upload current file to Supabase Storage
+    const { error: uploadError } = await supabase.storage
+      .from(authorImageBucket)
+      .upload(fileNamePrefix, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      return { error: uploadError };
+    }
+
+    // Get the public URL of the uploaded image
+    const { data } = supabase.storage
+      .from(authorImageBucket)
+      .getPublicUrl(fileNamePrefix);
+    // Update the profile record with the new avatar URL
+    const { error: updateError } = await updateProfileQuery(
+      supabase,
+      profileId,
+      {
+        avatar_url: data.publicUrl,
+      },
+    );
+    if (updateError) {
+      return { error: updateError };
+    }
+
+    return { message: "Image uploaded successfully", url: data.publicUrl };
+  } catch (error) {
+    console.error("Error checking existing avatar:", error);
+  }
 }

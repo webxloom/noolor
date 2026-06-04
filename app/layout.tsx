@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist_Mono, Inter, Lora } from "next/font/google";
 import "./globals.css";
 import AppLayout from "./components/layout/app-layout";
+import { ToastProvider } from "./contexts/toast-context";
+import { LanguageProvider } from "./contexts/language-context";
 
 const inter = Inter({
   display: "swap",
@@ -37,7 +39,11 @@ export default function RootLayout({
       className={`${inter.variable} ${geistMono.variable} ${lora.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <AppLayout>{children}</AppLayout>
+        <LanguageProvider>
+          <ToastProvider>
+            <AppLayout>{children}</AppLayout>
+          </ToastProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

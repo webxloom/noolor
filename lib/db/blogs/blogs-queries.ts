@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type BlogRecord = {
   id: string;
-  user_id: string;
+  author_id: string;
   title: string;
   slug?: string | null;
   content: string;
@@ -19,7 +19,25 @@ export type BlogInsert = Omit<BlogRecord, "created_at" | "id"> & {
   id?: string;
 };
 
-export type BlogUpdate = Partial<Omit<BlogInsert, "user_id">>;
+export type BlogUpdate = Partial<Omit<BlogInsert, "author_id">>;
+
+// Get all blogs
+export async function getAllBlogsQuery(
+  supabase: SupabaseClient,
+  limit: number = 100,
+) {
+  return supabase
+    .from("blogs")
+    .select(
+      `*, author:profiles!blogs_author_id_fkey (
+      name,role,avatar_url
+    )`,
+    )
+    .order("created_at", {
+      ascending: false,
+    })
+    .limit(limit);
+}
 
 export async function getBlogsByUserIdQuery(
   supabase: SupabaseClient,
@@ -28,22 +46,15 @@ export async function getBlogsByUserIdQuery(
   return supabase
     .from("blogs")
     .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .returns<BlogRecord[]>();
+    .eq("author_id", userId)
+    .order("created_at", { ascending: false });
 }
 
-export async function getPublishedBlogsQuery(
-  supabase: SupabaseClient,
-  publishedBefore = new Date().toISOString(),
-) {
+export async function getPublishedBlogsQuery(supabase: SupabaseClient) {
   return supabase
     .from("blogs")
-    .select("*")
-    .eq("is_published", true)
-    .lte("published_at", publishedBefore)
-    .order("published_at", { ascending: false })
-    .returns<BlogRecord[]>();
+    .select(`*, profile:profiles(name, avatar_url)`)
+    .order("created_at", { ascending: false });
 }
 
 export async function getPublishedBlogBySlugQuery(
@@ -51,13 +62,53 @@ export async function getPublishedBlogBySlugQuery(
   slug: string,
   publishedBefore = new Date().toISOString(),
 ) {
-  return supabase
+  const { data: blogDetail, error } = await supabase
     .from("blogs")
-    .select("*")
+    .select(`*, profile:profiles( name, role)`)
     .eq("slug", slug)
     .eq("is_published", true)
     .lte("published_at", publishedBefore)
-    .maybeSingle<BlogRecord>();
+    .maybeSingle<BlogRecord & { profile: { name?: string; role?: string } }>();
+
+  if (error) {
+    console.error("Error fetching blog by slug:", error);
+    return { data: null, error };
+  }
+
+  const authorId = blogDetail?.author_id;
+  const isPublication = blogDetail?.profile?.role?.includes("publication");
+  let authorDetail = null;
+
+  if (authorId) {
+    if (isPublication) {
+      const { data: publicationData, error: publicationError } = await supabase
+        .from("publications")
+        .select("slug")
+        .eq("profile_id", authorId)
+        .maybeSingle();
+      if (publicationError) {
+        console.error("Error fetching publication by ID:", publicationError);
+        return { data: null, error: publicationError };
+      }
+      authorDetail = publicationData;
+    } else {
+      const { data: authorData, error: authorError } = await supabase
+        .from("authors")
+        .select("slug")
+        .eq("profile_id", authorId)
+        .maybeSingle();
+      if (authorError) {
+        console.error("Error fetching author by ID:", authorError);
+        return { data: null, error: authorError };
+      }
+      authorDetail = authorData;
+    }
+  }
+
+  return {
+    data: { blog: blogDetail, authorSlug: authorDetail?.slug ?? null },
+    error: null,
+  };
 }
 
 export async function createBlogQuery(

@@ -1,3 +1,4 @@
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type BookRecord = {
@@ -17,6 +18,7 @@ export type BookRecord = {
   page_count?: number | null;
   published_year?: number | null;
   content_url?: string | null;
+  awards?: Record<string, any> | null;
   created_at?: string | null;
 };
 
@@ -32,8 +34,21 @@ export async function getBooksQuery(supabase: SupabaseClient) {
   return supabase
     .from("books")
     .select("*")
+    .order("created_at", { ascending: false });
+}
+
+// Get books with all details including author and publication info
+export function getBooksWithDetailsQuery(
+  supabase: SupabaseClient,
+  limit: number = 100,
+) {
+  return supabase
+    .from("books")
+    .select(
+      `*, author:authors(id,slug,profile:profiles(id,name,avatar_url)), publication:publications(id,slug,profile:profiles(id,name,avatar_url))`,
+    )
     .order("created_at", { ascending: false })
-    .returns<BookRecord[]>();
+    .limit(limit);
 }
 
 export async function getBooksByAuthorIdQuery(
@@ -43,9 +58,8 @@ export async function getBooksByAuthorIdQuery(
   return supabase
     .from("books")
     .select("*")
-    .eq("author_id", authorId)
-    .order("created_at", { ascending: false })
-    .returns<BookRecord[]>();
+    .or(`author_id.eq.${authorId},publication_id.eq.${authorId}`)
+    .order("created_at", { ascending: false });
 }
 
 export async function createBookQuery(
@@ -59,11 +73,38 @@ export async function getBookBySlugQuery(
   supabase: SupabaseClient,
   slug: string,
 ) {
-  return supabase
+  const { data: bookDetail, error } = await supabase
     .from("books")
     .select("*")
     .eq("slug", slug)
     .maybeSingle<BookRecord>();
+
+  if (error) {
+    console.error("Error fetching book by slug:", error);
+    return { data: null, error };
+  }
+
+  const authorId = bookDetail?.author_id;
+  let authorDetail = null;
+  if (authorId) {
+    const { data: authorData, error: authorError } = await supabase
+      .from("authors")
+      .select(`*, profile:profiles(name, avatar_url)`)
+      .eq("id", authorId)
+      .maybeSingle();
+
+    if (authorError) {
+      console.error("Error fetching author by ID:", authorError);
+      return { data: null, error: authorError };
+    }
+
+    authorDetail = authorData;
+  }
+
+  return {
+    data: { book: bookDetail, author: authorDetail },
+    error: null,
+  };
 }
 
 export async function updateBookQuery(
@@ -76,7 +117,7 @@ export async function updateBookQuery(
     .update(patch)
     .eq("id", bookId)
     .select()
-    .single<BookRecord>();
+    .maybeSingle<BookRecord>();
 }
 
 export async function deleteBookQuery(
@@ -84,4 +125,22 @@ export async function deleteBookQuery(
   bookId: string,
 ) {
   return supabase.from("books").delete().eq("id", bookId);
+}
+
+// Check if an author has any books
+export async function checkAuthorhasBooks(authorId: string) {
+  const supabase = createBrowserSupabaseClient();
+
+  const { data, error } = await supabase
+    .from("books")
+    .select("id")
+    .or(`author_id.eq.${authorId},publication_id.eq.${authorId}`)
+    .limit(1);
+
+  if (error) {
+    console.error("Error checking author books:", error);
+    return false;
+  }
+
+  return data && data.length > 0;
 }

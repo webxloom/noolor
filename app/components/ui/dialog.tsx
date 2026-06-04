@@ -103,6 +103,56 @@ const DialogContent = React.forwardRef<
   const ctx = React.useContext(DialogContext);
   if (!ctx || !ctx.open) return null;
 
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Track open dialogs globally to support nested dialogs
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    window.__dialogOpenCount = (window.__dialogOpenCount || 0) + 1;
+
+    const body = document.body;
+    const html = document.documentElement;
+
+    // Save original overflow styles once
+    if (!body.dataset.originalOverflow) {
+      body.dataset.originalOverflow = body.style.overflow || "";
+    }
+    if (!html.dataset.originalOverflow) {
+      html.dataset.originalOverflow = html.style.overflow || "";
+    }
+
+    // Prevent background scrolling
+    body.style.overflow = "hidden";
+    html.style.overflow = "hidden";
+
+    return () => {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      window.__dialogOpenCount = (window.__dialogOpenCount || 1) - 1;
+      // Only restore when last dialog is closed
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      if (window.__dialogOpenCount <= 0) {
+        if (body.dataset.originalOverflow !== undefined) {
+          body.style.overflow = body.dataset.originalOverflow;
+          delete body.dataset.originalOverflow;
+        } else {
+          body.style.overflow = "";
+        }
+        if (html.dataset.originalOverflow !== undefined) {
+          html.style.overflow = html.dataset.originalOverflow;
+          delete html.dataset.originalOverflow;
+        } else {
+          html.style.overflow = "";
+        }
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        delete window.__dialogOpenCount;
+      }
+    };
+  }, []);
+
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -111,7 +161,8 @@ const DialogContent = React.forwardRef<
         role="dialog"
         aria-modal="true"
         className={cn(
-          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg",
+          // make the dialog content constrained and scrollable when tall
+          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg max-h-[80vh] translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg overflow-auto",
           className,
         )}
         {...props}

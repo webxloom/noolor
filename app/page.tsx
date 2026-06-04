@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { AuthorCard } from "./components/shared/author-card";
-import { BlogCard } from "./components/shared/blog-card";
-import { BookCard } from "./components/shared/book-card";
+import { BlogCard } from "./components/blogs/blog-card";
+import { BookCard } from "./components/books/book-card";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Skeleton } from "./components/ui/skeleton";
@@ -22,6 +22,7 @@ import { GlobalSearch } from "./features/home-page/global-search";
 import FeaturedBooks from "./features/home-page/featured-books";
 import FeaturedAuthors from "./features/home-page/featured-authors";
 import { HowItWorks } from "./features/home-page/how-it-works";
+import { TodaysBest } from "./features/home-page/todays-best";
 
 const stats = {
   totalBooks: 1250,
@@ -87,8 +88,8 @@ export default function Home() {
       {/* Hero Section */}
       <HeroSection />
 
-      {/* Global Search */}
-      <GlobalSearch />
+      {/* Todays special / best */}
+      <TodaysBest />
 
       {/* Featured Books */}
       <FeaturedBooks

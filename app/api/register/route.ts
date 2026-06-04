@@ -8,11 +8,13 @@ import {
 } from "@/lib/db/profiles/profile-queries";
 
 const registerPayloadSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  phone: z.string().min(8),
-  password: z.string().min(6),
-  role: z.enum(["reader", "writer", "publication"]),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string(),
+  phone: z.string().min(8, "Phone number must be at least 8 digits"),
+  username: z.string().min(6, "Username must be at least 6 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  role: z.string().min(1, "Role is required"),
+  is_verified: z.boolean().optional(),
 });
 
 function createSupabaseAdminClient() {
@@ -42,15 +44,18 @@ export async function POST(request: Request) {
     const { data: createdUser, error: createUserError } =
       await supabase.auth.admin.createUser({
         email: payload.email,
-        phone: payload.phone,
         password: payload.password,
         email_confirm: true,
-        phone_confirm: true,
         user_metadata: {
           name: payload.name,
           phone: payload.phone,
+          username: payload.username,
           role: payload.role,
-          languages: ["en"],
+          subscription_plan: "free",
+          avatar_url: null,
+          contact_email: payload.email,
+          is_active: true,
+          is_verified: payload.is_verified ?? false,
         },
       });
 
@@ -64,11 +69,14 @@ export async function POST(request: Request) {
     const { error: profileError } = await createProfileQuery(supabase, {
       id: createdUser.user.id,
       name: payload.name,
+      contact_email: payload.email,
       phone: payload.phone,
+      username: payload.username,
       role: payload.role as ProfileRole,
-      languages: ["en"],
-      is_premium: false,
+      subscription_plan: "free",
       avatar_url: null,
+      is_active: true,
+      is_verified: payload.is_verified ?? false, // Assuming you want to set this based on the payload or default to false
     });
 
     if (profileError) {
@@ -79,6 +87,12 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    // Update the invitation record to mark it as registered if the user was created from an invitation
+    await supabase
+      .from("invitations")
+      .update({ is_registered: true })
+      .eq("phone", payload.phone);
 
     return NextResponse.json(
       {

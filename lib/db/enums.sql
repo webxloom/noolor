@@ -1,23 +1,17 @@
 -- User Type Enum
-create type public.user_type_enum as enum (
-  'reader',
-  'writer',
-  'publication'
-);
-
--- Subscription Type Enum
-create type public.subscription_type_enum as enum (
-  'free',
-  'premium'
-);
-
--- Role Enum
-create type public.role_enum as enum (
+create type public.user_role as enum (
   'reader',
   'writer',
   'publication',
-  'moderator',
+  'scholar',
   'admin'
+);
+
+-- Subscription Type Enum
+CREATE TYPE public.subscription_plan AS ENUM (
+  'free',
+  'standard',
+  'premium'
 );
 
 -- Authors Verification Status Enum

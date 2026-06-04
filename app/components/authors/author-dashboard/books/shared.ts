@@ -1,4 +1,5 @@
-import type { BookInsert, BookRecord } from "@/lib/db/books/books-queries";
+import type { BookCreate, BookRecord } from "@/lib/db/books/books-queries";
+import type { AwardFormItem } from "@/lib/types/authors";
 
 export type WriterBooksTabProps = {
   user: {
@@ -28,6 +29,7 @@ export type BookFormState = {
   backCoverUrl: string;
   contentUrl: string;
   quotes: string[];
+  awards?: AwardFormItem[];
 };
 
 export type BookAssetField = "coverUrl" | "backCoverUrl" | "contentUrl";
@@ -80,6 +82,7 @@ export function buildEmptyBookForm(): BookFormState {
     backCoverUrl: "",
     contentUrl: "",
     quotes: [],
+    awards: [],
   };
 }
 
@@ -97,15 +100,23 @@ export function mapBookToForm(book: BookRecord): BookFormState {
     backCoverUrl: book.back_cover_url ?? "",
     contentUrl: book.content_url ?? "",
     quotes: Array.isArray(book.quotes) ? book.quotes : [],
+    awards: Array.isArray(book.awards)
+      ? book.awards.map((a) => ({
+          title: a.title ?? "",
+          year: a.year != null ? String(a.year) : "",
+          fileUrl: a.fileUrl ?? "",
+        }))
+      : [],
   };
 }
 
 export function buildBookPayload(
-  authorId: string,
+  ownerId: string,
   form: BookFormState,
-): BookInsert {
+  isPublication = false,
+): BookCreate {
   return {
-    author_id: authorId,
+    author_id: isPublication ? null : ownerId,
     title: form.title.trim(),
     language: form.language,
     genres: form.genre ? [form.genre] : [],
@@ -118,7 +129,17 @@ export function buildBookPayload(
     back_cover_url: form.backCoverUrl.trim() || null,
     content_url: form.contentUrl.trim() || null,
     quotes: form.quotes.length > 0 ? form.quotes : null,
-    publication_id: null,
+    awards:
+      form.awards && form.awards.length > 0
+        ? form.awards
+            .map((a) => ({
+              title: a.title.trim(),
+              year: a.year?.trim() ? Number(a.year.trim()) : null,
+              fileUrl: a.fileUrl || null,
+            }))
+            .filter((a) => a.title.length > 0)
+        : null,
+    publication_id: isPublication ? ownerId : null,
   };
 }
 

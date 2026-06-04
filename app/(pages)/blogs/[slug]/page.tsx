@@ -1,24 +1,15 @@
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
-import {
-  BookOpen,
-  CalendarDays,
-  Clock3,
-  Hash,
-  Tag,
-  UserRound,
-} from "lucide-react";
+import { BookOpen, CalendarDays, Clock3, Tag } from "lucide-react";
 
 import { Badge } from "@/app/components/ui/badge";
-import { Button } from "@/app/components/ui/button";
 import { Separator } from "@/app/components/ui/separator";
-import { getAuthorsQuery } from "@/lib/db/authors/authors-queries";
 import { getPublishedBlogBySlugQuery } from "@/lib/db/blogs/blogs-queries";
+import Link from "next/link";
 
 type DetailedBlog = {
-  authorAvatar?: string;
+  // authorAvatar?: string;
   authorName: string;
   authorSlug?: string;
   content: string;
@@ -26,9 +17,9 @@ type DetailedBlog = {
   excerpt: string;
   language: string;
   publishedAt?: string;
-  slug: string;
   tags: string[];
   title: string;
+  role: string; // "writer" | "publication" | "reader"
 };
 
 function createServerSupabaseClient() {
@@ -52,32 +43,33 @@ export default async function BlogDetailPage({
   const { slug } = await params;
   const supabase = createServerSupabaseClient();
 
-  const { data: blog, error } = await getPublishedBlogBySlugQuery(
+  const { data: blogDetail, error } = await getPublishedBlogBySlugQuery(
     supabase,
     slug,
   );
 
-  if (error || !blog) {
+  if (error || !blogDetail) {
     notFound();
   }
 
-  const { data: authors } = await getAuthorsQuery(supabase);
-  const author = (authors ?? []).find(
-    (entry) => entry.user_id === blog.user_id,
-  );
+  const { blog, authorSlug } = blogDetail;
 
   const detailedBlog: DetailedBlog = {
-    authorAvatar: author?.avatar_url ?? undefined,
-    authorName: author?.name ?? "Unknown author",
-    authorSlug: author?.slug ?? undefined,
-    content: blog.content,
-    coverUrl: blog.cover_url ?? undefined,
-    excerpt: blog.excerpt ?? "No excerpt has been added yet.",
-    language: blog.language ?? "Unknown",
-    publishedAt: blog.published_at ?? undefined,
-    slug: blog.slug ?? blog.id,
-    tags: Array.isArray(blog.tags) ? blog.tags : [],
-    title: blog.title,
+    authorName: blog?.profile.name ?? "Unknown author",
+    authorSlug: authorSlug ?? undefined,
+    content: blog?.content ?? "No content available.",
+    coverUrl: blog?.cover_url ?? undefined,
+    excerpt: blog?.excerpt ?? "No excerpt has been added.",
+    language: blog?.language ?? "Unknown",
+    publishedAt: blog?.published_at ?? undefined,
+    tags: Array.isArray(blog?.tags) ? blog.tags : [],
+    title: blog?.title ?? "Untitled",
+    role:
+      blog?.profile?.role === "writer"
+        ? "writer"
+        : blog?.profile?.role === "publication"
+          ? "publication"
+          : "reader",
   };
 
   const readingTime = Math.max(
@@ -111,11 +103,6 @@ export default async function BlogDetailPage({
         <div className="flex-1">
           <div className="mb-4 flex flex-wrap gap-2">
             <Badge variant="outline">{detailedBlog.language}</Badge>
-            {detailedBlog.tags.slice(0, 2).map((tag) => (
-              <Badge key={tag} variant="outline">
-                {tag}
-              </Badge>
-            ))}
           </div>
 
           <h1 className="mb-2 font-serif text-4xl font-bold leading-tight tracking-tight md:text-5xl">
@@ -124,18 +111,18 @@ export default async function BlogDetailPage({
 
           <p className="mb-6 flex items-center gap-2 text-xl text-muted-foreground">
             By{" "}
-            {detailedBlog.authorSlug ? (
-              <Link
-                href={`/authors/${detailedBlog.authorSlug}`}
-                className="font-medium text-primary hover:underline"
-              >
-                {detailedBlog.authorName}
-              </Link>
-            ) : (
+            <Link
+              href={
+                detailedBlog.role === "writer"
+                  ? `/authors/${detailedBlog.authorSlug}`
+                  : `/publications/${detailedBlog.authorSlug}`
+              }
+              className="flex items-center gap-2 font-medium text-foreground hover:underline"
+            >
               <span className="font-medium text-foreground">
                 {detailedBlog.authorName}
               </span>
-            )}
+            </Link>
           </p>
 
           <div className="mb-8 flex flex-wrap items-center gap-6 text-sm">
@@ -160,18 +147,18 @@ export default async function BlogDetailPage({
               </div>
             ) : null}
 
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Tag className="h-4 w-4" />
-              <span>
-                {detailedBlog.tags.length > 0
-                  ? `${detailedBlog.tags.length} tag${detailedBlog.tags.length === 1 ? "" : "s"}`
-                  : "No tags"}
-              </span>
-            </div>
+            {detailedBlog.tags.length > 0 && (
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Tag className="h-4 w-4" />
+                <span>
+                  {`${detailedBlog.tags.length} tag${detailedBlog.tags.length === 1 ? "" : "s"}`}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="max-w-none">
-            <h3 className="mb-4 font-serif text-2xl font-bold">Synopsis</h3>
+            <h3 className="mb-4 font-serif text-2xl font-bold">Excerpt</h3>
             <p className="whitespace-pre-line text-lg leading-relaxed text-muted-foreground">
               {detailedBlog.excerpt}
             </p>
@@ -191,7 +178,7 @@ export default async function BlogDetailPage({
               .filter(Boolean)
               .map((paragraph, index) => (
                 <p
-                  key={`${detailedBlog.slug}-${index}`}
+                  key={`${detailedBlog.title}-${index}`}
                   className="whitespace-pre-line text-base leading-8 text-foreground md:text-lg"
                 >
                   {paragraph}

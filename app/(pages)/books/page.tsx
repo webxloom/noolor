@@ -1,36 +1,32 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
-import { Input } from "@/app/components/ui/input";
-import { Button } from "@/app/components/ui/button";
-import { Skeleton } from "@/app/components/ui/skeleton";
-import { Search, Filter } from "lucide-react";
-import { BookCard, type Book } from "@/app/components/shared/book-card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/app/components/ui/select";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { Search } from "lucide-react";
+
+// Types / Queries
 import { getAuthorsQuery } from "@/lib/db/authors/authors-queries";
 import { getBooksQuery, type BookRecord } from "@/lib/db/books/books-queries";
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import type { AuthorRecord } from "@/lib/types/authors";
 
-type BookListItem = Book & {
+// Components
+import { Button } from "@/app/components/ui/button";
+import { Skeleton } from "@/app/components/ui/skeleton";
+import { BookCard, type Book } from "@/app/components/books/book-card";
+import BooksSearch from "@/app/components/books/books-search";
+
+export type BookListItem = Book & {
   authorId?: string;
 };
 
 function mapBookToListItem(
-  book: BookRecord,
-  authorsById: Map<string, AuthorRecord>,
+  book: BookRecord & { slug: string },
+  authorsById: Map<string, AuthorRecord & { profile: { name: string } }>,
 ): BookListItem {
   const author = book.author_id ? authorsById.get(book.author_id) : undefined;
 
   return {
     authorId: book.author_id ?? undefined,
-    authorName: author?.name,
+    authorName: author?.profile.name,
     authorSlug: author?.slug,
     coverUrl: book.cover_url ?? undefined,
     genre: book.genres?.[0] ?? "Uncategorized",
@@ -49,11 +45,14 @@ export default function Books() {
   const [books, setBooks] = useState<BookListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [genre, setGenre] = useState<string>("all");
-  const [language, setLanguage] = useState<string>("all");
-  const [isFree, setIsFree] = useState<string>("all");
+  const [filters, setFilters] = useState({
+    search: "",
+    debouncedSearch: "",
+    genre: "all",
+    language: "all",
+    isFree: "all",
+  });
+  const { search, debouncedSearch, genre, language, isFree } = filters;
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -102,18 +101,6 @@ export default function Books() {
     };
   }, []);
 
-  const languageOptions = useMemo(() => {
-    return Array.from(new Set(books.map((book) => book.language))).sort(
-      (left, right) => left.localeCompare(right),
-    );
-  }, [books]);
-
-  const genreOptions = useMemo(() => {
-    return Array.from(new Set(books.map((book) => book.genre))).sort(
-      (left, right) => left.localeCompare(right),
-    );
-  }, [books]);
-
   const filteredBooks = useMemo(() => {
     const normalizedSearch = debouncedSearch.trim().toLowerCase();
 
@@ -145,15 +132,17 @@ export default function Books() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setDebouncedSearch(search);
+    setFilters((prev) => ({ ...prev, debouncedSearch: search }));
   };
 
   const handleClearFilters = () => {
-    setSearch("");
-    setDebouncedSearch("");
-    setGenre("all");
-    setLanguage("all");
-    setIsFree("all");
+    setFilters({
+      search: "",
+      debouncedSearch: "",
+      genre: "all",
+      language: "all",
+      isFree: "all",
+    });
   };
 
   return (
@@ -180,94 +169,14 @@ export default function Books() {
       ) : null}
 
       <div className="flex flex-col lg:flex-row gap-8">
-        <aside className="w-full lg:w-64 space-y-6 flex-shrink-0">
-          <div className="bg-card border rounded-xl p-5 space-y-6">
-            <div>
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Search className="h-4 w-4" /> Search
-              </h3>
-              <form onSubmit={handleSearchSubmit} className="flex gap-2">
-                <Input
-                  placeholder="Titles, authors..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="bg-background"
-                />
-                <Button type="submit" size="icon" variant="secondary">
-                  <Search className="h-4 w-4" />
-                </Button>
-              </form>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Filter className="h-4 w-4" /> Filters
-              </h3>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Language</label>
-                  <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="All Languages" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Languages</SelectItem>
-                      {languageOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Genre</label>
-                  <Select value={genre} onValueChange={setGenre}>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="All Genres" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Genres</SelectItem>
-                      {genreOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Pricing</label>
-                  <Select value={isFree} onValueChange={setIsFree}>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="Any Price" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Any Price</SelectItem>
-                      <SelectItem value="free">Free</SelectItem>
-                      <SelectItem value="paid">Paid</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {(debouncedSearch ||
-              genre !== "all" ||
-              language !== "all" ||
-              isFree !== "all") && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleClearFilters}
-              >
-                Clear Filters
-              </Button>
-            )}
-          </div>
-        </aside>
+        {/* Search */}
+        <BooksSearch
+          handleSearchSubmit={handleSearchSubmit}
+          handleClearFilters={handleClearFilters}
+          filters={filters}
+          setFilters={setFilters}
+          books={books}
+        />
 
         <div className="flex-1">
           {isLoading ? (
@@ -277,7 +186,7 @@ export default function Books() {
               ))}
             </div>
           ) : filteredBooks.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {filteredBooks.map((book) => (
                 <BookCard key={book.id} book={book} />
               ))}

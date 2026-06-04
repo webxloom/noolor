@@ -41,7 +41,7 @@ export function mapBlogToForm(blog: BlogRecord): BlogFormState {
 }
 
 export function buildBlogPayload(
-  userId: string,
+  authorId: string,
   form: BlogFormState,
 ): BlogInsert {
   const nextSlug = form.slug.trim() || slugifyBlogTitle(form.title);
@@ -52,7 +52,7 @@ export function buildBlogPayload(
     : null;
 
   return {
-    user_id: userId,
+    author_id: authorId,
     title: form.title.trim(),
     slug: nextSlug || null,
     excerpt: form.excerpt.trim() || null,

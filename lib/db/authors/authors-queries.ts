@@ -12,9 +12,8 @@ export type AuthorUpdate = Partial<Omit<AuthorInsert, "user_id">>;
 export async function getAuthorsQuery(supabase: SupabaseClient) {
   return supabase
     .from(authorTable)
-    .select("*")
-    .order("created_at", { ascending: false })
-    .returns<AuthorRecord[]>();
+    .select(`*, profile:profiles(id,name,avatar_url)`)
+    .order("created_at", { ascending: false });
 }
 
 export async function getAuthorBySlugQuery(
@@ -23,8 +22,21 @@ export async function getAuthorBySlugQuery(
 ) {
   return supabase
     .from(authorTable)
-    .select("*")
+    .select(`*, profile:profiles(*)`)
     .eq("slug", slug)
+    .maybeSingle<
+      AuthorRecord & { profile: { name: string; avatar_url?: string } }
+    >();
+}
+
+export async function getAuthorByIdQuery(
+  supabase: SupabaseClient,
+  authorId: string,
+) {
+  return supabase
+    .from(authorTable)
+    .select(`*, profile:profiles(name)`)
+    .eq("id", authorId)
     .maybeSingle<AuthorRecord>();
 }
 
@@ -32,11 +44,47 @@ export async function getAuthorByUserIdQuery(
   supabase: SupabaseClient,
   userId: string,
 ) {
-  return supabase
+  const { data, error } = await supabase
     .from(authorTable)
     .select("*")
-    .eq("user_id", userId)
+    .eq("profile_id", userId)
     .maybeSingle<AuthorRecord>();
+
+  if (error) {
+    return { data: null, error };
+  }
+
+  return { data, error: null };
+}
+
+export async function getBooksCountForAuthors(
+  supabase: SupabaseClient,
+  authors: AuthorRecord[],
+) {
+  const authorIds = authors.map((author) => author.id);
+
+  const { data: books, error } = await supabase
+    .from("books")
+    .select("author_id")
+    .in("author_id", authorIds);
+
+  if (error) {
+    console.error("Error fetching books count:", error);
+    return authors;
+  }
+
+  // Count books by author
+  const counts: Record<string, number> = {};
+
+  books.forEach(({ author_id }) => {
+    counts[author_id] = (counts[author_id] ?? 0) + 1;
+  });
+
+  // Add book_count to each author
+  return authors.map((author) => ({
+    ...author,
+    book_count: counts[author.id] ?? 0,
+  }));
 }
 
 export async function createAuthorQuery(

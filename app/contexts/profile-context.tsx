@@ -2,7 +2,7 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 
-import { useAuthorProfile } from "../hooks/use-author-profile";
+import { useAuthorProfile } from "../hooks/author/use-author-profile";
 
 type AuthorProfileContextValue = ReturnType<typeof useAuthorProfile>;
 

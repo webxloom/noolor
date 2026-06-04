@@ -1,43 +1,30 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
-import { Filter, Search } from "lucide-react";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { Search } from "lucide-react";
 
-import { BlogCard, type Blog } from "@/app/components/shared/blog-card";
-import { Button } from "@/app/components/ui/button";
-import { Input } from "@/app/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/app/components/ui/select";
-import { Skeleton } from "@/app/components/ui/skeleton";
-import { getAuthorsQuery } from "@/lib/db/authors/authors-queries";
+// Types / Queries
 import {
   getPublishedBlogsQuery,
   type BlogRecord,
 } from "@/lib/db/blogs/blogs-queries";
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
-import type { AuthorRecord } from "@/lib/types/authors";
 
-type BlogListItem = Blog & {
+// Components
+import { BlogCard, type Blog } from "@/app/components/blogs/blog-card";
+import { Button } from "@/app/components/ui/button";
+import { Skeleton } from "@/app/components/ui/skeleton";
+import BlogsSearch from "@/app/components/blogs/blogs-search";
+
+export type BlogListItem = Blog & {
   authorId?: string;
   createdAt?: string;
 };
 
 function mapBlogToListItem(
-  blog: BlogRecord,
-  authorsByUserId: Map<string, AuthorRecord>,
+  blog: BlogRecord & { profile?: { name: string; avatar_url: string } },
 ): BlogListItem {
-  const author = authorsByUserId.get(blog.user_id);
-
   return {
-    authorAvatar: author?.avatar_url ?? undefined,
-    authorId: author?.id,
-    authorName: author?.name ?? "Unknown author",
-    authorSlug: author?.slug ?? undefined,
+    authorName: blog?.profile?.name ?? "Unknown author",
     coverUrl: blog.cover_url ?? undefined,
     createdAt: blog.created_at ?? undefined,
     excerpt: blog.excerpt ?? undefined,
@@ -73,12 +60,15 @@ export default function BlogsPage() {
   const [blogs, setBlogs] = useState<BlogListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [author, setAuthor] = useState<string>("all");
-  const [language, setLanguage] = useState<string>("all");
-  const [tag, setTag] = useState<string>("all");
-  const [dateRange, setDateRange] = useState<string>("all");
+  const [filters, setFilters] = useState({
+    search: "",
+    debouncedSearch: "",
+    author: "all",
+    language: "all",
+    tag: "all",
+    dateRange: "all",
+  });
+  const { search, debouncedSearch, author, language, tag, dateRange } = filters;
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -88,38 +78,21 @@ export default function BlogsPage() {
       setIsLoading(true);
       setLoadError(null);
 
-      const [blogsResult, authorsResult] = await Promise.all([
-        getPublishedBlogsQuery(supabase),
-        getAuthorsQuery(supabase),
-      ]);
+      const { data: blogsResult, error: blogsError } =
+        await getPublishedBlogsQuery(supabase);
 
       if (!isMounted) {
         return;
       }
 
-      if (blogsResult.error) {
-        setLoadError(blogsResult.error.message);
+      if (blogsError) {
+        setLoadError(blogsError.message);
         setBlogs([]);
         setIsLoading(false);
         return;
       }
 
-      if (authorsResult.error) {
-        setLoadError(authorsResult.error.message);
-      }
-
-      const authorsByUserId = new Map(
-        (authorsResult.data ?? []).map((authorRecord) => [
-          authorRecord.user_id,
-          authorRecord,
-        ]),
-      );
-
-      setBlogs(
-        (blogsResult.data ?? []).map((blog) =>
-          mapBlogToListItem(blog, authorsByUserId),
-        ),
-      );
+      setBlogs((blogsResult ?? []).map((blog) => mapBlogToListItem(blog)));
       setIsLoading(false);
     }
 
@@ -129,28 +102,6 @@ export default function BlogsPage() {
       isMounted = false;
     };
   }, []);
-
-  const authorOptions = useMemo(() => {
-    return Array.from(
-      new Map(
-        blogs
-          .filter((blog) => blog.authorId && blog.authorName)
-          .map((blog) => [blog.authorId as string, blog.authorName as string]),
-      ),
-    ).sort((left, right) => left[1].localeCompare(right[1]));
-  }, [blogs]);
-
-  const languageOptions = useMemo(() => {
-    return Array.from(new Set(blogs.map((blog) => blog.language))).sort(
-      (left, right) => left.localeCompare(right),
-    );
-  }, [blogs]);
-
-  const tagOptions = useMemo(() => {
-    return Array.from(new Set(blogs.flatMap((blog) => blog.tags ?? []))).sort(
-      (left, right) => left.localeCompare(right),
-    );
-  }, [blogs]);
 
   const filteredBlogs = useMemo(() => {
     const normalizedSearch = debouncedSearch.trim().toLowerCase();
@@ -193,16 +144,18 @@ export default function BlogsPage() {
 
   const handleSearchSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    setDebouncedSearch(search);
+    setFilters((prev) => ({ ...prev, debouncedSearch: search }));
   };
 
   const handleClearFilters = () => {
-    setSearch("");
-    setDebouncedSearch("");
-    setAuthor("all");
-    setLanguage("all");
-    setTag("all");
-    setDateRange("all");
+    setFilters({
+      search: "",
+      debouncedSearch: "",
+      author: "all",
+      language: "all",
+      tag: "all",
+      dateRange: "all",
+    });
   };
 
   return (
@@ -231,113 +184,14 @@ export default function BlogsPage() {
       ) : null}
 
       <div className="flex flex-col gap-8 lg:flex-row">
-        <aside className="w-full flex-shrink-0 space-y-6 lg:w-72">
-          <div className="space-y-6 rounded-xl border bg-card p-5">
-            <div>
-              <h3 className="mb-3 flex items-center gap-2 font-semibold">
-                <Search className="h-4 w-4" /> Search
-              </h3>
-              <form onSubmit={handleSearchSubmit} className="flex gap-2">
-                <Input
-                  placeholder="Titles, authors, tags..."
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  className="bg-background"
-                />
-                <Button type="submit" size="icon" variant="secondary">
-                  <Search className="h-4 w-4" />
-                </Button>
-              </form>
-            </div>
-
-            <div>
-              <h3 className="mb-3 flex items-center gap-2 font-semibold">
-                <Filter className="h-4 w-4" /> Filters
-              </h3>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Author</label>
-                  <Select value={author} onValueChange={setAuthor}>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="All Authors" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Authors</SelectItem>
-                      {authorOptions.map(([id, name]) => (
-                        <SelectItem key={id} value={id}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Language</label>
-                  <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="All Languages" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Languages</SelectItem>
-                      {languageOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Tag</label>
-                  <Select value={tag} onValueChange={setTag}>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="All Tags" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Tags</SelectItem>
-                      {tagOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Published</label>
-                  <Select value={dateRange} onValueChange={setDateRange}>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="Any time" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Any time</SelectItem>
-                      <SelectItem value="last-30-days">Last 30 days</SelectItem>
-                      <SelectItem value="last-year">Last year</SelectItem>
-                      <SelectItem value="older">Older</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            {(debouncedSearch ||
-              author !== "all" ||
-              language !== "all" ||
-              tag !== "all" ||
-              dateRange !== "all") && (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleClearFilters}
-              >
-                Clear Filters
-              </Button>
-            )}
-          </div>
-        </aside>
+        {/* Search */}
+        <BlogsSearch
+          handleSearchSubmit={handleSearchSubmit}
+          handleClearFilters={handleClearFilters}
+          filters={filters}
+          setFilters={setFilters}
+          blogs={blogs}
+        />
 
         <div className="flex-1">
           {isLoading ? (

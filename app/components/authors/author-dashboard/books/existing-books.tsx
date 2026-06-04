@@ -1,179 +1,129 @@
-import { Button } from "@/app/components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardDescription,
-  CardTitle,
-  CardContent,
-} from "@/app/components/ui/card";
-import { Input } from "@/app/components/ui/input";
-import { Badge } from "@/app/components/ui/badge";
-import { Search, Filter, Pencil, Loader2, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Pencil, Trash2 } from "lucide-react";
+import Image from "next/image";
 
 import { useAuthorBooksContext } from "@/app/contexts/books-context";
-import { STATUS_FILTERS, getBookStatus, getStatusBadgeVariant } from "./shared";
+import { Button } from "@/app/components/ui/button";
+import Link from "next/link";
 
-export default function AuthorExistingBooks() {
-  const {
-    books,
-    filter,
-    filteredBooks,
-    handleDelete,
-    isDeletingId,
-    search,
-    setFilter,
-    setSearch,
-    startCreate,
-    startEdit,
-    statusCounts,
-  } = useAuthorBooksContext();
+export default function AuthorExistingBooks({
+  onEdit,
+  canEdit,
+}: {
+  onEdit: (actionType: string, bookId?: string) => void;
+  canEdit: boolean;
+}) {
+  const { books } = useAuthorBooksContext();
+
+  const ITEMS_PER_PAGE = 9;
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.ceil(books.length / ITEMS_PER_PAGE);
+
+  const paginatedBooks = books.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
 
   return (
-    <Card className="border-border/70 shadow-sm">
-      <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="grid flex-1 gap-4 lg:grid-cols-3">
-          <Card className="border-border/70 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardDescription>Total books</CardDescription>
-              <CardTitle className="font-serif text-3xl">
-                {books.length}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="border-border/70 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardDescription>Published or monetized</CardDescription>
-              <CardTitle className="font-serif text-3xl">
-                {statusCounts.published + statusCounts.free + statusCounts.paid}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="border-border/70 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardDescription>Draft or upcoming</CardDescription>
-              <CardTitle className="font-serif text-3xl">
-                {statusCounts.draft + statusCounts.upcoming}
-              </CardTitle>
-            </CardHeader>
-          </Card>
+    <div className="space-y-6">
+      {books.length === 0 ? (
+        <div className="rounded-2xl border border-dashed px-6 py-10 text-center text-sm text-muted-foreground">
+          No books added yet.{" "}
+          {canEdit ? "Click the button above to add your first book." : ""}
         </div>
-        <Button type="button" onClick={startCreate} className="shrink-0">
-          <Plus className="h-4 w-4" />
-          Add new book
-        </Button>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by title, language, genre, or description"
-              className="pl-10"
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {STATUS_FILTERS.map((statusFilter) => (
-              <Button
-                key={statusFilter.value}
-                type="button"
-                variant={filter === statusFilter.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter(statusFilter.value)}
-              >
-                <Filter className="h-3.5 w-3.5" />
-                {statusFilter.label}
-                <span className="rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] text-foreground">
-                  {statusCounts[statusFilter.value]}
-                </span>
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {filteredBooks.length === 0 ? (
-            <div className="rounded-2xl border border-dashed px-6 py-10 text-center text-sm text-muted-foreground">
-              No books matched the current filters.
-            </div>
-          ) : (
-            filteredBooks.map((book) => {
-              const status = getBookStatus(book);
-
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {paginatedBooks.map((book) => {
               return (
                 <div
                   key={book.id}
-                  className="rounded-2xl border border-border/70 bg-background p-4 shadow-sm"
+                  className="group relative overflow-hidden rounded-xl border shadow-sm aspect-[3/3.4] w-full"
                 >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="font-medium text-foreground">
-                          {book.title}
-                        </h3>
-                        <Badge variant={getStatusBadgeVariant(status)}>
-                          {status}
-                        </Badge>
-                        {book.language ? (
-                          <Badge variant="secondary">{book.language}</Badge>
-                        ) : null}
-                        {book.genres?.[0] ? (
-                          <Badge variant="secondary">{book.genres[0]}</Badge>
-                        ) : null}
-                      </div>
-                      <p className="max-w-3xl text-sm text-muted-foreground">
-                        {book.description || "No description added yet."}
-                      </p>
-                      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                        <span>Pages: {book.page_count ?? "-"}</span>
-                        <span>Year: {book.published_year ?? "-"}</span>
-                        <span>
-                          {book.cover_url ? "Cover uploaded" : "No cover yet"}
-                        </span>
-                        <span>
-                          Pricing:{" "}
-                          {book.is_free
-                            ? "Free"
-                            : book.price
-                              ? `INR ${book.price}`
-                              : "Not set"}
-                        </span>
-                      </div>
-                    </div>
+                  <Image
+                    src={book.cover_url || "/images/book-placeholder.png"}
+                    alt={book.title ?? "Book cover"}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover"
+                    unoptimized
+                  />
 
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => startEdit(book)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                        Edit
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(book)}
-                        disabled={isDeletingId === book.id}
-                      >
-                        {isDeletingId === book.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                        Delete
-                      </Button>
+                  {/* Overlay on image to navigate to book detail page (visible on hover) */}
+                  <Link
+                    href={`/books/${book.slug}`}
+                    className="absolute inset-0 z-20 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
+                  >
+                    <div className="rounded-md bg-black/60 px-3 py-2 text-sm font-medium text-white pointer-events-auto">
+                      View book details
                     </div>
+                  </Link>
+
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/60 p-2 backdrop-blur-sm z-30">
+                    <h3 className="line-clamp-1 text-sm font-medium text-white">
+                      {book.title}
+                    </h3>
+
+                    {canEdit && (
+                      <div className="flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => onEdit("edit", book.id)}
+                        >
+                          <Pencil className="h-4 w-4 text-white" />
+                        </Button>
+
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => onEdit("delete", book.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-400" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            })}
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+            >
+              Previous
+            </Button>
+
+            {Array.from({ length: totalPages }, (_, i) => (
+              <Button
+                key={i}
+                size="sm"
+                variant={currentPage === i + 1 ? "default" : "outline"}
+                onClick={() => setCurrentPage(i + 1)}
+              >
+                {i + 1}
+              </Button>
+            ))}
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

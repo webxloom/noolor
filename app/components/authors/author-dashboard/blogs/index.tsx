@@ -1,79 +1,130 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/app/components/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/app/components/ui/tabs";
+import { Loader2, Plus } from "lucide-react";
 import { AuthorBlogsProvider } from "@/app/contexts/blogs-context";
-import { useAuthorBlogs } from "@/app/hooks/use-author-blogs";
-import type { AuthorBlogsTabProps } from "@/lib/types/blogs";
 
 import AuthorExistingBlogs from "./existing-blogs";
 import BlogEditor from "./blog-editor";
+import { Button } from "@/app/components/ui/button";
+import { useEffect, useState } from "react";
+import { Dialog, DialogContent } from "@/app/components/ui/dialog";
+import { useAuthorBlogs } from "@/app/hooks/author/use-author-blogs";
 
-export function AuthorBlogsTab({ user }: AuthorBlogsTabProps) {
-  const blogs = useAuthorBlogs(user);
-  const { activeTab, editingBlogId, isLoading, loadError, setActiveTab } =
-    blogs;
+export function AuthorBlogsTab({
+  canEdit,
+  authorId,
+}: {
+  canEdit: boolean;
+  authorId: any;
+}) {
+  const blogsDetail = useAuthorBlogs(authorId);
+  const [showEditor, setShowEditor] = useState(false);
+  const [blogToEdit, setBlogToEdit] = useState<string | null>(null);
+  const [actionType, setActionType] = useState<"create" | "edit" | "delete">(
+    "create",
+  );
+
+  const {
+    activeTab,
+    blogs,
+    editingBlogId,
+    isLoading,
+    loadError,
+    setActiveTab,
+    startCreate,
+    startEdit,
+  } = blogsDetail;
+
+  const editBlogs = (action: string, blogId?: string) => {
+    if (blogId) {
+      const blog = blogs.find((b) => b.id === blogId);
+      if (blog) {
+        startEdit(blog);
+      } else {
+        // fallback: just set id
+        setBlogToEdit(blogId);
+      }
+    } else {
+      startCreate();
+    }
+    setShowEditor(true);
+    setActionType(action as "create" | "edit" | "delete");
+  };
+
+  useEffect(() => {
+    if (editingBlogId || activeTab === "editor") {
+      setBlogToEdit(editingBlogId);
+      setShowEditor(true);
+    } else {
+      setShowEditor(false);
+      setBlogToEdit(null);
+    }
+  }, [editingBlogId, activeTab]);
 
   if (isLoading) {
     return (
-      <Card className="border-border/70 shadow-sm">
-        <CardHeader>
-          <CardTitle className="font-serif text-2xl">Blogs</CardTitle>
-          <CardDescription>
-            Loading the writer&apos;s blog catalog.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex items-center gap-3 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading blogs...
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Loading blogs...
+      </div>
+    );
+  }
+
+  if (!authorId) {
+    return (
+      <div className="flex items-center justify-center gap-3 text-sm text-muted-foreground">
+        No author profile was found for this user. Update bio and try again.
+      </div>
     );
   }
 
   return (
-    <AuthorBlogsProvider value={blogs}>
-      <div className="space-y-6">
+    <AuthorBlogsProvider value={blogsDetail}>
+      <div className="px-4 sm:px-6 lg:px-8 py-2 space-y-6">
         {loadError ? (
           <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             {loadError}
           </div>
         ) : null}
 
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="space-y-4"
-        >
-          <TabsList className="h-auto w-full justify-start gap-2 overflow-x-auto rounded-2xl border border-border/70 bg-card p-2">
-            <TabsTrigger value="catalog">Existing blogs</TabsTrigger>
-            <TabsTrigger value="editor">
-              {editingBlogId ? "Edit blog" : "Post blog"}
-            </TabsTrigger>
-          </TabsList>
+        <div className="flex items-center justify-between gap-4">
+          {/* Total blogs */}
+          <h1 className="font-serif text-2xl font-semibold">
+            {blogs.length} {blogs.length === 1 ? "blog" : "blogs"}
+          </h1>
 
-          <TabsContent value="catalog" className="space-y-6">
-            <AuthorExistingBlogs />
-          </TabsContent>
+          {/* Add book */}
+          {canEdit && (
+            <Button
+              type="button"
+              className="shrink-0"
+              onClick={() => editBlogs("create")}
+            >
+              <Plus className="h-4 w-4" />
+              Add new blog
+            </Button>
+          )}
+        </div>
 
-          <TabsContent value="editor" className="space-y-6">
-            <BlogEditor />
-          </TabsContent>
-        </Tabs>
+        {/* BlogsList */}
+        <AuthorExistingBlogs onEdit={editBlogs} canEdit={canEdit} />
       </div>
+
+      {showEditor && (
+        <Dialog
+          open={showEditor}
+          onOpenChange={setShowEditor}
+          className="overflow-auto"
+        >
+          <DialogContent className="max-w-3xl overflow-auto">
+            <BlogEditor
+              blogId={blogToEdit}
+              action={actionType}
+              onClose={() => setShowEditor(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </AuthorBlogsProvider>
   );
 }

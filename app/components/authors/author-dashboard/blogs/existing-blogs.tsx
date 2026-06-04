@@ -1,191 +1,143 @@
-import { Filter, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { useState } from "react";
+import Image from "next/image";
+import { Pencil, Trash2 } from "lucide-react";
 
 import { useAuthorBlogsContext } from "@/app/contexts/blogs-context";
-import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/app/components/ui/card";
-import { Input } from "@/app/components/ui/input";
-import { BLOG_STATUS_FILTERS } from "@/lib/constants/blogs";
+import { getBlogStatus } from "./shared";
+import Link from "next/link";
 
-import { getBlogStatus, getBlogStatusVariant } from "./shared";
+export default function AuthorExistingBlogs({
+  onEdit,
+  canEdit,
+}: {
+  onEdit: (actionType: string, bookId?: string) => void;
+  canEdit: boolean;
+}) {
+  const { blogs } = useAuthorBlogsContext();
 
-export default function AuthorExistingBlogs() {
-  const {
-    blogs,
-    filter,
-    filteredBlogs,
-    handleDelete,
-    isDeletingId,
-    search,
-    setFilter,
-    setSearch,
-    startCreate,
-    startEdit,
-    statusCounts,
-  } = useAuthorBlogsContext();
+  const ITEMS_PER_PAGE = 9;
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.ceil(blogs.length / ITEMS_PER_PAGE);
+
+  const paginatedBlogs = blogs.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  );
 
   return (
-    <Card className="border-border/70 shadow-sm">
-      <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <section className="grid w-full gap-4 lg:grid-cols-3">
-          <Card className="border-border/70 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardDescription>Total blogs</CardDescription>
-              <CardTitle className="font-serif text-3xl">
-                {blogs.length}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="border-border/70 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardDescription>Published live</CardDescription>
-              <CardTitle className="font-serif text-3xl">
-                {statusCounts.published}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="border-border/70 shadow-sm">
-            <CardHeader className="pb-3">
-              <CardDescription>Draft or scheduled</CardDescription>
-              <CardTitle className="font-serif text-3xl">
-                {statusCounts.draft + statusCounts.scheduled}
-              </CardTitle>
-            </CardHeader>
-          </Card>
-        </section>
-        <Button type="button" onClick={startCreate} className="shrink-0">
-          <Plus className="h-4 w-4" />
-          New blog post
-        </Button>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by title, slug, tag, language, or content"
-              className="pl-10"
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {BLOG_STATUS_FILTERS.map((statusFilter) => (
-              <Button
-                key={statusFilter.value}
-                type="button"
-                variant={filter === statusFilter.value ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFilter(statusFilter.value)}
-              >
-                <Filter className="h-3.5 w-3.5" />
-                {statusFilter.label}
-                <span className="rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] text-foreground">
-                  {statusCounts[statusFilter.value]}
-                </span>
-              </Button>
-            ))}
-          </div>
+    <div className="space-y-6">
+      {blogs.length === 0 ? (
+        <div className="rounded-2xl border border-dashed px-6 py-10 text-center text-sm text-muted-foreground">
+          No blogs added yet.{" "}
+          {canEdit ? "Click the button above to add your first blog." : ""}
         </div>
-
-        <div className="space-y-4">
-          {filteredBlogs.length === 0 ? (
-            <div className="rounded-2xl border border-dashed px-6 py-10 text-center text-sm text-muted-foreground">
-              No blogs matched the current filters.
-            </div>
-          ) : (
-            filteredBlogs.map((blog) => {
+      ) : (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {paginatedBlogs.map((blog) => {
               const status = getBlogStatus(blog);
-
               return (
                 <div
                   key={blog.id}
-                  className="rounded-2xl border border-border/70 bg-background p-4 shadow-sm"
+                  className="group relative overflow-hidden rounded-xl border shadow-sm aspect-[3/3.4] w-full"
                 >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="font-medium text-foreground">
-                          {blog.title}
-                        </h3>
-                        <Badge variant={getBlogStatusVariant(status)}>
-                          {status}
-                        </Badge>
-                        {blog.language ? (
-                          <Badge variant="secondary">{blog.language}</Badge>
-                        ) : null}
-                        {blog.slug ? (
-                          <Badge variant="outline">/{blog.slug}</Badge>
-                        ) : null}
-                      </div>
-                      <p className="max-w-3xl text-sm text-muted-foreground">
-                        {blog.excerpt || "No excerpt added yet."}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {(blog.tags ?? []).map((tag) => (
-                          <Badge key={tag} variant="secondary">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                        <span>
-                          Created:{" "}
-                          {blog.created_at
-                            ? new Date(blog.created_at).toLocaleDateString(
-                                "en-IN",
-                              )
-                            : "-"}
-                        </span>
-                        <span>
-                          Publish at:{" "}
-                          {blog.published_at
-                            ? new Date(blog.published_at).toLocaleString(
-                                "en-IN",
-                              )
-                            : "Not scheduled"}
-                        </span>
-                      </div>
-                    </div>
+                  <Image
+                    src={blog.cover_url || "/images/book-placeholder.png"}
+                    alt={blog.title ?? "Blog cover"}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover"
+                    unoptimized
+                  />
 
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => startEdit(blog)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                        Edit
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(blog)}
-                        disabled={isDeletingId === blog.id}
-                      >
-                        {isDeletingId === blog.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                        Delete
-                      </Button>
+                  {/* Overlay on image to navigate to blog detail page (visible on hover) */}
+                  <Link
+                    href={`/blogs/${blog.slug}`}
+                    className="absolute inset-0 z-20 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto"
+                  >
+                    <div className="rounded-md bg-black/60 px-3 py-2 text-sm font-medium text-white pointer-events-auto">
+                      View blog details
                     </div>
+                  </Link>
+
+                  {/* Status Badge */}
+                  {canEdit && (
+                    <div className="absolute top-3 right-3 rounded-full bg-white px-3 py-1 shadow-lg ring-1 ring-black/10">
+                      <span className="text-xs font-semibold text-gray-900">
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Bottom Overlay */}
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/60 p-2 backdrop-blur-sm">
+                    <h3 className="line-clamp-2 flex-1 text-sm font-semibold text-white">
+                      {blog.title}
+                    </h3>
+
+                    {canEdit && (
+                      <div className="ml-2 flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-white hover:bg-white/20"
+                          onClick={() => onEdit("edit", blog.id)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-red-400 hover:bg-white/20"
+                          onClick={() => onEdit("delete", blog.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            })}
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+            >
+              Previous
+            </Button>
+
+            {Array.from({ length: totalPages }, (_, i) => (
+              <Button
+                key={i}
+                size="sm"
+                variant={currentPage === i + 1 ? "default" : "outline"}
+                onClick={() => setCurrentPage(i + 1)}
+              >
+                {i + 1}
+              </Button>
+            ))}
+
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

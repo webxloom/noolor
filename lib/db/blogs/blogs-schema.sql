@@ -1,8 +1,6 @@
 create table public.blogs (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null
-    references public.profiles(id)
-    on delete cascade,
+  author_id uuid references public.profiles(id) on delete set null,
   title text not null,
   slug text unique not null,
   content text not null,
@@ -15,55 +13,50 @@ create table public.blogs (
   created_at timestamp with time zone default now()
 );
 
+alter table public.blogs
+  add column author_id uuid references public.profiles(id) on delete set null;
+
 -- Indexes for performance
-create index idx_blogs_user_id on public.blogs(user_id);
+create index idx_blogs_user_id on public.blogs(author_id);
 create index idx_blogs_is_published on public.blogs(is_published);
 create index idx_blogs_tags on public.blogs using gin(tags);
 create index idx_blogs_title_search on public.blogs using gin(to_tsvector('english', title));
 
--- Generate slug from name on insert
-CREATE OR REPLACE FUNCTION generate_blog_slug(
-    title TEXT,
-    user_id UUID
-)
-RETURNS TEXT
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    base_slug TEXT;
-    final_slug TEXT;
+-- Generate slug from title on insert
+CREATE OR REPLACE FUNCTION public.generate_blog_slug()
+RETURNS TRIGGER AS $$
 BEGIN
-    -- Convert name into URL-friendly slug
-    base_slug := lower(
-        regexp_replace(title, '[^a-zA-Z0-9]+', '-', 'g')
-    );
+  -- Generate slug on INSERT or when title changes
+  IF TG_OP = 'INSERT'
+     OR (TG_OP = 'UPDATE' AND NEW.title IS DISTINCT FROM OLD.title)
+  THEN
+    NEW.slug :=
+      lower(
+        regexp_replace(
+          trim(NEW.title),
+          '[^a-zA-Z0-9]+',
+          '-',
+          'g'
+        )
+      );
 
     -- Remove leading/trailing hyphens
-    base_slug := trim(both '-' from base_slug);
+    NEW.slug := trim(both '-' FROM NEW.slug);
 
-    -- Append first 4 chars of UUID for uniqueness
-    final_slug := base_slug || '-' || left(user_id::text, 4);
+    -- Append author id prefix for uniqueness
+    NEW.slug := NEW.slug || '-' || left(NEW.author_id::text, 8);
+  END IF;
 
-    RETURN final_slug;
+  RETURN NEW;
 END;
-$$;
+$$ LANGUAGE plpgsql;
 
 -- Trigger to set slug on insert
-CREATE OR REPLACE FUNCTION set_blog_slug()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    NEW.slug := generate_blog_slug(NEW.title, NEW.user_id);
-    RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER blogs_set_slug
-BEFORE INSERT
-ON blogs
+CREATE TRIGGER blogs_generate_slug
+BEFORE INSERT OR UPDATE OF title
+ON public.books
 FOR EACH ROW
-EXECUTE FUNCTION set_blog_slug();
+EXECUTE FUNCTION public.generate_blog_slug();
 
 -- Policy to restrict access to blog data
 alter table public.blogs enable row level security;
@@ -74,29 +67,41 @@ on public.blogs
 for select
 using (is_published = true);
 
--- Authenticated users can view drafts and their own blogs
-create policy "Users can view their own blogs"
-on public.blogs
-for select
-to authenticated
-using (auth.uid() = user_id);
+-- Hosts can view their own blogs
+CREATE POLICY "Hosts can view their own blogs"
+ON public.blogs
+FOR SELECT
+USING (author_id = auth.uid());
 
--- Users can create blogs
-create policy "Users can create blogs"
-on public.blogs
-for insert
-to authenticated
-with check (auth.uid() = user_id);
+-- Authenticated users can create blogs
+CREATE POLICY "Authenticated users can create blogs"
+ON public.blogs
+FOR INSERT
+TO authenticated
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM public.profiles p
+        WHERE p.id = author_id
+    )
+);
 
--- Users can update their own blogs
-create policy "Users can update their blogs"
-on public.blogs
-for update
-to authenticated
-using (auth.uid() = user_id);
+-- Hosts can update their own blogs
+CREATE POLICY "Hosts can update their own blogs"
+ON public.blogs
+FOR UPDATE
+TO authenticated
+USING (
+    author_id = auth.uid()
+)
+WITH CHECK (
+    author_id = auth.uid()
+);
 
-create policy "Users can delete their blogs"
-on public.blogs
-for delete
-to authenticated
-using (auth.uid() = user_id);
+-- Hosts can delete their own blogs
+CREATE POLICY "Hosts can delete their own blogs"
+ON public.blogs
+FOR DELETE
+TO authenticated
+USING (
+    author_id = auth.uid()
+);

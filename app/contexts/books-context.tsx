@@ -2,7 +2,7 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 
-import { useAuthorBooks } from "@/app/hooks/use-author-books";
+import { useAuthorBooks } from "@/app/hooks/author/use-author-books";
 
 type AuthorBooksContextValue = ReturnType<typeof useAuthorBooks>;
 

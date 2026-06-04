@@ -1,4 +1,4 @@
-import { BookCard } from "@/app/components/shared/book-card";
+import { BookCard } from "@/app/components/books/book-card";
 import { Button } from "@/app/components/ui/button";
 import { Skeleton } from "@/app/components/ui/skeleton";
 import { ArrowRight } from "lucide-react";
