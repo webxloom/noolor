@@ -11,6 +11,7 @@ import {
   X,
   Newspaper,
   Globe,
+  BadgeIndianRupee,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import { Button } from "../ui/button";
@@ -64,6 +65,12 @@ function NavLinks() {
       >
         <Users className="h-4 w-4" /> Groups
       </Link> */}
+      <Link
+        href="/pricing"
+        className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
+      >
+        <BadgeIndianRupee className="h-4 w-4" /> Pricing
+      </Link>
     </>
   );
 }
