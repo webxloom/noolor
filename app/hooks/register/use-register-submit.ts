@@ -1,7 +1,12 @@
 import { useRouter } from "next/navigation";
 import { useToast } from "@/app/contexts/toast-context";
-import { RegisterFormValues } from "./use-register-state";
+import {
+  RegisterFormValues,
+  ProfileUpdateFormValues,
+} from "./use-register-state";
 import { useRegisterVerification } from "./use-register-verification";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { updateProfileQuery } from "@/lib/db/profiles/profile-queries";
 
 function generateEmail(fullName: string) {
   const username = fullName.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -9,7 +14,7 @@ function generateEmail(fullName: string) {
   return `${username}_${timestamp}@noolor.local`;
 }
 
-export function useRegisterSubmit(stateDetails: any) {
+export function useRegisterSubmit(stateDetails: any, profileUser?: any) {
   const { addToast } = useToast();
   const router = useRouter();
 
@@ -26,7 +31,7 @@ export function useRegisterSubmit(stateDetails: any) {
     pendingRegistrationData,
   } = stateDetails;
 
-  const { handleVerification } = useRegisterVerification({
+  const { handleVerification, otpVerification } = useRegisterVerification({
     inviteDetails,
     setVerifiedStatus,
     prefilledFromInvite,
@@ -37,7 +42,7 @@ export function useRegisterSubmit(stateDetails: any) {
     phone?: string,
     email?: string,
     otp?: string,
-    pendingData?: RegisterFormValues,
+    pendingData?: RegisterFormValues | ProfileUpdateFormValues,
   ) => {
     if (action === "send" && phone && email && otp) {
       setShowOtpModal(true);
@@ -83,8 +88,14 @@ export function useRegisterSubmit(stateDetails: any) {
 
   const handleOtpVerify = async (otp: string) => {
     if (otp === (otpData?.otp ?? "1234")) {
-      if (pendingRegistrationData)
-        await completeRegistration(pendingRegistrationData);
+      if (pendingRegistrationData) {
+        // Check if this is a profile update (userDetails exists) or registration
+        if (stateDetails.isProfileUpdate) {
+          await completeProfileUpdate(pendingRegistrationData);
+        } else {
+          await completeRegistration(pendingRegistrationData);
+        }
+      }
     } else {
       addToast("Invalid OTP. Please try again.", "error");
     }
@@ -130,11 +141,85 @@ export function useRegisterSubmit(stateDetails: any) {
     }
   };
 
+  const updateProfile = async () => {
+    const data = form.getValues();
+    // Check if the phone number has changed and needs verification
+    const { phone, email } = data;
+    const hasPhoneChanged = profileUser?.phone !== phone;
+
+    if (hasPhoneChanged) {
+      const otp = await otpVerification(phone, email);
+
+      // Open OTP modal for user to enter code
+      handleOTPAction?.("send", phone, email, otp);
+      // Store pending data for after OTP verification
+      handleOTPAction?.("pending", phone, email, undefined, data);
+    } else {
+      // No phone change, update profile directly
+      await completeProfileUpdate(data);
+    }
+  };
+
+  const completeProfileUpdate = async (
+    data: RegisterFormValues | ProfileUpdateFormValues,
+  ) => {
+    const supabase = createBrowserSupabaseClient();
+
+    if (!profileUser) {
+      addToast("User not found", "error");
+      return;
+    }
+
+    try {
+      // Update password in Supabase auth if password is provided and not empty
+      if (data.password && data.password.trim()) {
+        const { error: authError } = await supabase.auth.updateUser({
+          password: data.password,
+        });
+
+        if (authError) {
+          throw new Error(`Failed to update password: ${authError.message}`);
+        }
+      }
+
+      // Update profile data in database
+      const updates = {
+        name: data.name.trim(),
+        phone: data.phone.trim(),
+        contact_email: data.email?.trim() || null,
+      };
+
+      const { error } = await updateProfileQuery(
+        supabase,
+        profileUser.id,
+        updates,
+      );
+
+      if (error) {
+        throw error;
+      }
+
+      addToast("Profile updated successfully", "success");
+      setPendingRegistrationData(null);
+      setShowOtpModal(false);
+
+      // Refresh the page to reflect changes
+      window.location.reload();
+    } catch (err) {
+      addToast(
+        err instanceof Error ? err.message : "Profile update failed.",
+        "error",
+      );
+    }
+  };
+
   return {
     onSubmit,
     handleOtpVerify,
     handleResendOtp,
     handleOTPAction,
     completeRegistration,
+    updateProfile,
+    completeProfileUpdate,
   };
 }

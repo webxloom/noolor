@@ -10,6 +10,7 @@ import {
   Globe,
   BadgeIndianRupee,
   Calendar,
+  Library,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import { Button } from "../ui/button";
@@ -203,29 +204,19 @@ export function Navbar() {
                     <div className="flex items-center justify-start gap-2 p-2">
                       <div className="flex flex-col space-y-1 leading-none">
                         <p className="font-medium">{profileUser.name}</p>
-                        <p className="w-[200px] truncate text-sm text-muted-foreground">
-                          {profileUser.role.charAt(0).toUpperCase() +
-                            profileUser.role.slice(1)}
-                        </p>
                       </div>
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => router.push("/dashboard")}
-                      className="cursor-pointer"
+                      className="cursor-pointer hover:bg-accent/50 transition-colors flex items-center gap-2"
                     >
                       {messages.dashboard}
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => router.push("/profile")}
-                      className="cursor-pointer"
-                    >
-                      {messages.profileSettings}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
+
                     <DropdownMenuItem
                       onClick={handleLogout}
-                      className="text-destructive focus:bg-destructive/10 cursor-pointer"
+                      className="text-destructive focus:bg-destructive/10 cursor-pointer hover:bg-destructive/10 transition-colors flex items-center gap-2"
                     >
                       {messages.logOut}
                     </DropdownMenuItem>

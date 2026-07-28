@@ -91,5 +91,6 @@ export function useRegisterVerification({
 
   return {
     handleVerification,
+    otpVerification,
   };
 }

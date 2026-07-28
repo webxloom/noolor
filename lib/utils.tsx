@@ -21,3 +21,21 @@ export const CloseIcon = ({ className }: { className?: string }) => (
 );
 
 export default cn;
+
+export const capitalizeFirstLetter = (str: string) => {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
+export const getRoleColor = (role: string) => {
+  switch (role.toLowerCase()) {
+    case "reader":
+      return "bg-blue-100 text-blue-800";
+    case "writer":
+      return "bg-red-100 text-red-800";
+    case "publication":
+      return "bg-yellow-100 text-yellow-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};

@@ -7,28 +7,32 @@ import {
   ProfileRole,
 } from "@/lib/db/profiles/profile-queries";
 
-function mapProfileToDashboardUser(profile: ProfileRecord): DashboardUser {
+function mapProfileToDashboardUser(
+  profile: Partial<ProfileRecord>,
+): DashboardUser {
   return {
     avatar_url: profile.avatar_url ?? undefined,
-    id: profile.id,
-    subscription_plan: profile.subscription_plan,
-    name: profile.name,
+    id: profile.id ?? "",
+    subscription_plan: profile.subscription_plan ?? undefined,
+    name: profile.name ?? "",
     username: profile.username ?? undefined,
     phone: profile.phone ?? undefined,
     contact_email: profile.contact_email ?? undefined,
-    role: profile.role, // Map the role property from ProfileRecord to DashboardUser
+    role: (profile.role as ProfileRole) ?? "reader",
+    other_roles: (profile.other_roles as string[]) ?? [],
   };
 }
 
 export type DashboardUser = {
   avatar_url?: string;
   id: string;
-  subscription_plan: string;
+  subscription_plan?: string;
   name: string;
-  username: string;
-  phone: string;
+  username?: string;
+  phone?: string;
   contact_email?: string;
   role: ProfileRole; // Add the role property to the DashboardUser type
+  other_roles?: string[]; // Optional property for other roles
 };
 
 export function useProfileSession() {

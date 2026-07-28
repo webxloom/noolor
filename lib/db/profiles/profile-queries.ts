@@ -1,12 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
-export type ProfileRole =
-  | "reader"
-  | "writer"
-  | "scholar"
-  | "publication"
-  | "admin";
+export type ProfileRole = "reader" | "admin";
 
 export type ProfileRecord = {
   id: string;
@@ -19,6 +14,7 @@ export type ProfileRecord = {
   avatar_url: string | null;
   is_active: boolean;
   is_verified: boolean;
+  other_roles?: string[] | undefined; // Optional property for other roles
 };
 
 export type ProfileUpdate = Partial<Omit<ProfileRecord, "id">>;
@@ -30,11 +26,35 @@ export async function getProfileByIdQuery(
   supabase: SupabaseClient,
   profileId: string,
 ) {
-  return supabase
+  // User basic profile details
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", profileId)
     .maybeSingle<ProfileRecord>();
+  if (profileError) {
+    console.error("Error fetching profile:", profileError);
+    return { data: null, error: profileError };
+  }
+
+  // User other roles
+  const { data: otherRoles, error: otherRolesError } = await supabase
+    .from("user_roles")
+    .select("*")
+    .eq("user_id", profileId)
+    .maybeSingle();
+
+  if (otherRolesError) {
+    console.error("Error fetching other roles:", otherRolesError);
+    return { data: null, error: otherRolesError };
+  }
+
+  const profileWithRoles = {
+    ...profile,
+    other_roles: otherRoles?.roles ?? [],
+  };
+
+  return { data: profileWithRoles, error: null };
 }
 
 // Check if phone number or username already exists and return specific error
@@ -76,6 +96,34 @@ export async function checkExistingProfileQuery(
   }
 
   return { error: null };
+}
+
+// Find profile by phone or email for password reset
+export async function findProfileByPhoneOrEmail(identifier: string) {
+  const supabase: SupabaseClient = createBrowserSupabaseClient();
+
+  // Check if identifier is email or phone
+  const isEmail = identifier.includes("@");
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("id, phone, contact_email, name")
+    .or(
+      isEmail
+        ? `contact_email.eq.${identifier}`
+        : `phone.eq.${identifier},contact_email.eq.${identifier}`,
+    )
+    .maybeSingle();
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  if (!profile) {
+    return { data: null, error: "No account found with this phone or email." };
+  }
+
+  return { data: profile, error: null };
 }
 
 export async function createProfileQuery(

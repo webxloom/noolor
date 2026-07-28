@@ -2,6 +2,7 @@ import { BookOpen } from "lucide-react";
 import LoginForm from "./login-form";
 import Link from "next/link";
 import { useLoginSubmit } from "@/app/hooks/register/use-login-submit";
+import ForgotPasswordForm from "./forgot-password";
 
 export default function Login() {
   const { form, onSubmit } = useLoginSubmit();
@@ -23,6 +24,9 @@ export default function Login() {
 
         <div className="bg-card border rounded-xl shadow-sm p-6 sm:p-8">
           <LoginForm form={form} onSubmit={onSubmit} />
+
+          {/* Forgot Password */}
+          <ForgotPasswordForm />
         </div>
 
         <p className="text-center text-sm text-muted-foreground">

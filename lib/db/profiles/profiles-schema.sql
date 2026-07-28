@@ -7,7 +7,7 @@ CREATE TABLE public.profiles (
   username TEXT NOT NULL UNIQUE,
   phone TEXT UNIQUE NOT NULL,
   contact_email TEXT UNIQUE,
-  role TEXT NOT NULL DEFAULT 'reader',
+  role TEXT NOT NULL DEFAULT 'user',
   avatar_url TEXT,
   subscription_plan subscription_plan NOT NULL DEFAULT 'free',
   is_active boolean NOT NULL DEFAULT true,
@@ -15,7 +15,6 @@ CREATE TABLE public.profiles (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
 
 insert into public.profiles (id, name, username, phone, contact_email, roles, role, subscription_plan)
 select id, name, username, phone, contact_email, roles, role, subscription_plan
