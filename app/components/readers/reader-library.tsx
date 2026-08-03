@@ -29,7 +29,7 @@ type LibraryEntry = {
 
 export default function ReaderLibrary({
   userId,
-  role = "default",
+  role = "reader",
 }: {
   userId: string;
   role?: string;
@@ -39,6 +39,12 @@ export default function ReaderLibrary({
   const supabase = createBrowserSupabaseClient();
 
   useEffect(() => {
+    if (!userId) {
+      setEntries([]);
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
 
     async function load() {
@@ -56,19 +62,19 @@ export default function ReaderLibrary({
     return () => {
       mounted = false;
     };
-  }, [supabase]);
+  }, [supabase, userId]);
 
   if (loading) return <div className="p-6">Loading library…</div>;
 
   if (entries.length === 0)
     return (
-      <div className="p-6">
+      <div className="p-6 rounded-lg border bg-card p-6">
         Your library is empty. Add books to get started.
       </div>
     );
 
   return (
-    <div className="p-6">
+    <div className="p-6 rounded-lg border bg-card p-6">
       <div
         className={`grid ${role === "admin" ? "grid-cols-2" : "grid-cols-3"}  gap-4`}
       >

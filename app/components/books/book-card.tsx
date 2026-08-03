@@ -9,6 +9,7 @@ export type Book = {
   coverUrl?: string;
   title: string;
   authorName?: string;
+  publishedBy?: string;
   authorSlug?: string;
   isFree: boolean;
   language: string;
@@ -44,6 +45,9 @@ export function BookCard({ book }: BookCardProps) {
           <h3 className="line-clamp-2 text-sm font-semibold">{book.title}</h3>
 
           <p className="text-xs text-muted-foreground">{book.authorName}</p>
+          <p className="text-xs text-muted-foreground">
+            Published by: {book.publishedBy ?? "Unknown publisher"}
+          </p>
 
           <p className="text-xs text-muted-foreground">
             {book.language} • {book.genre}

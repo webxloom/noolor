@@ -5,7 +5,7 @@ CREATE TABLE public.events (
     description TEXT,
     cover_image TEXT,
     event_type TEXT NOT NULL,
-    host_user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    host_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     start_at TIMESTAMPTZ NOT NULL,
     end_at TIMESTAMPTZ,
     event_mode TEXT NOT NULL DEFAULT 'online',
@@ -53,7 +53,7 @@ BEGIN
         NEW.slug := trim(both '-' FROM NEW.slug);
     
         -- Append host user id prefix for uniqueness
-        NEW.slug := NEW.slug || '-' || left(NEW.host_user_id::text, 8);
+        NEW.slug := NEW.slug || '-' || left(NEW.host_id::text, 8);
     END IF;
     
     RETURN NEW;
@@ -80,7 +80,7 @@ USING (visibility = 'public');
 CREATE POLICY "Hosts can view their own events"
 ON public.events
 FOR SELECT
-USING (host_user_id = auth.uid());
+USING (host_id = auth.uid());
 
 -- Hosts and authenticated users can view private events
 CREATE POLICY "Hosts and authenticated users can view private events"
@@ -88,7 +88,7 @@ ON public.events
 FOR SELECT
 USING (
     visibility = 'private' AND (
-        host_user_id = auth.uid() OR
+        host_id = auth.uid() OR
         EXISTS (
             SELECT 1 FROM public.event_participants ep
             WHERE ep.event_id = id AND ep.user_id = auth.uid()
@@ -104,7 +104,7 @@ TO authenticated
 WITH CHECK (
     EXISTS (
         SELECT 1 FROM public.profiles p
-        WHERE p.id = host_user_id
+        WHERE p.id = host_id
     )
 );
 
@@ -114,10 +114,10 @@ ON public.events
 FOR UPDATE
 TO authenticated
 USING (
-    host_user_id = auth.uid()
+    host_id = auth.uid()
 )
 WITH CHECK (
-    host_user_id = auth.uid()
+    host_id = auth.uid()
 );
 
 -- Hosts can delete their own events
@@ -126,5 +126,5 @@ ON public.events
 FOR DELETE
 TO authenticated
 USING (
-    host_user_id = auth.uid()
+    host_id = auth.uid()
 );

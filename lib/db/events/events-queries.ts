@@ -7,7 +7,7 @@ export type EventRecord = {
   description?: string;
   cover_image?: string;
   event_type: string;
-  host_user_id: string;
+  host_id: string;
   start_at: string;
   end_at?: string | null;
   event_mode: string;
@@ -29,7 +29,7 @@ export type EventInsert = Omit<EventRecord, "created_at" | "id" | "slug"> & {
 
 export type EventCreate = Omit<EventInsert, "slug">;
 
-export type EventUpdate = Partial<Omit<EventInsert, "host_user_id">>;
+export type EventUpdate = Partial<Omit<EventInsert, "host_id">>;
 
 // Get all blogs
 export async function getAllEventsQuery(
@@ -39,7 +39,7 @@ export async function getAllEventsQuery(
   return supabase
     .from("events")
     .select(
-      `*, host:profiles!events_host_user_id_fkey (
+      `*, host:profiles!events_host_id_fkey (
       name,role,avatar_url
     )`,
     )
@@ -63,7 +63,17 @@ export async function getEventsByProfileIdQuery(
   return supabase
     .from("events")
     .select("*")
-    .eq("host_user_id", profileId)
+    .eq("host_id", profileId)
+    .order("created_at", { ascending: false });
+}
+export async function getEventsByHostIdQuery(
+  supabase: SupabaseClient,
+  profileId: string,
+) {
+  return supabase
+    .from("events")
+    .select("*")
+    .eq("host_id", profileId)
     .order("created_at", { ascending: false });
 }
 
@@ -89,7 +99,7 @@ export async function getEventBySlugQuery(
     return { data: null, error };
   }
 
-  const authorId = eventDetail?.host_user_id;
+  const authorId = eventDetail?.host_id;
   const isPublication = eventDetail?.profile?.role === "publication";
   let authorDetail = null;
 

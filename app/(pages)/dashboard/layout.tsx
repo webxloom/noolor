@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useProfileSession } from "@/app/hooks/use-profile-session";
 
@@ -15,6 +15,8 @@ export default function UserLayout({
 }) {
   const { profileUser, isLoading } = useProfileSession();
   const router = useRouter();
+  const pathname = usePathname();
+
   useEffect(() => {
     if (!profileUser && !isLoading) {
       router.replace("/login");
@@ -42,6 +44,13 @@ export default function UserLayout({
     return null;
   }
 
+  const hidebasicDetails =
+    pathname.includes("author") || pathname.includes("publication");
+
+  if (hidebasicDetails) {
+    return <div className="container mx-auto px-4 py-8">{children}</div>;
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 lg:gap-6">
@@ -51,7 +60,7 @@ export default function UserLayout({
         </div>
 
         {/* Dashboard Overview */}
-        <div className="rounded-lg border bg-background/80 flex-1 min-w-0 p-4">
+        <div className="rounded-lg border bg-background/50 flex-1 min-w-0 p-4">
           {children}
         </div>
       </div>

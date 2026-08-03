@@ -3,17 +3,20 @@ create table public.books (
   title text not null,
   slug text unique not null,
   author_id uuid references public.authors(id) on delete set null,
+  author_name text,
   publication_id uuid references public.publications(id) on delete set null,
+  publication_name text,
   cover_url text,
   back_cover_url text,
   language text,
   genres text[], -- ['Fiction', 'Drama']
   description text,
-  quotes jsonb,
+  quote text,
   is_free boolean default false,
   price numeric(10,2),
   page_count integer,
   published_year integer,
+  page_limit integer default 0,
   content_url text, -- PDF / EPUB / external link
   awards jsonb default '[]'::jsonb,
   created_at timestamp with time zone default now()

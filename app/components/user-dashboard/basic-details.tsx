@@ -2,6 +2,7 @@ import { DashboardUser } from "@/app/hooks/use-profile-session";
 import UserImage from "./user-image";
 import { Mail, Phone } from "lucide-react";
 import { capitalizeFirstLetter, getRoleColor } from "@/lib/utils";
+import Link from "next/link";
 
 export default function BasicDetails({ user }: { user: DashboardUser }) {
   const roles = [user.role, ...(user.other_roles || [])];
@@ -51,6 +52,16 @@ export default function BasicDetails({ user }: { user: DashboardUser }) {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Edit button */}
+      <div className="px-4 pb-4 w-full grid">
+        <Link
+          href="/dashboard/profile"
+          className="w-full px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium text-center"
+        >
+          Edit Profile
+        </Link>
       </div>
     </div>
   );

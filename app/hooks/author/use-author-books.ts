@@ -21,7 +21,7 @@ import {
   mapBookToForm,
   matchesBookSearch,
   STATUS_FILTERS,
-} from "@/app/components/authors/author-dashboard/books/shared";
+} from "@/app/components/books/shared";
 import { useToast } from "../../contexts/toast-context";
 
 const authorImageBucket = process.env.SUPABASE_BUCKET_NAME ?? "noolor";
@@ -294,6 +294,23 @@ export function useAuthorBooks(
     setIsSaving(true);
 
     try {
+      // If editing, fetch the original book to know previous asset URLs
+      const originalBook = editingBookId
+        ? (books.find((b) => b.id === editingBookId) ?? null)
+        : null;
+
+      function extractStoragePath(url?: string | null) {
+        if (!url) return null;
+        const marker = `/${authorImageBucket}/`;
+        const idx = url.indexOf(marker);
+        if (idx === -1) return null;
+        let path = url.substring(idx + marker.length);
+        const q = path.indexOf("?");
+        if (q !== -1) path = path.substring(0, q);
+        return decodeURIComponent(path);
+      }
+
+      const pathsToRemove: string[] = [];
       const pendingQuote = quoteInput.trim();
       let nextForm = {
         ...form,
@@ -321,6 +338,22 @@ export function useAuthorBooks(
         );
 
         nextForm = { ...nextForm, [field]: uploadedUrl };
+
+        // If we're editing, schedule the previous file for removal
+        if (originalBook) {
+          const prevUrl =
+            field === "coverUrl"
+              ? originalBook.cover_url
+              : field === "backCoverUrl"
+                ? originalBook.back_cover_url
+                : originalBook.content_url;
+
+          const prevPath = extractStoragePath(prevUrl ?? null);
+          const newPath = extractStoragePath(uploadedUrl ?? null);
+          if (prevPath && prevPath !== newPath) {
+            pathsToRemove.push(prevPath);
+          }
+        }
       }
 
       // Upload pending award files if any
@@ -435,6 +468,22 @@ export function useAuthorBooks(
         );
         return [result.data, ...remaining];
       });
+
+      // After saving the book record, remove any replaced asset files
+      if (pathsToRemove.length > 0) {
+        const uniquePaths = Array.from(new Set(pathsToRemove));
+        try {
+          const { error: removeErr } = await supabase.storage
+            .from(authorImageBucket)
+            .remove(uniquePaths);
+
+          if (removeErr) {
+            addToast("Failed to remove some replaced stored files", "info");
+          }
+        } catch (err) {
+          addToast("Failed to remove replaced stored files", "info");
+        }
+      }
 
       addToast(editingBookId ? "Book updated" : "Book created", "success");
 

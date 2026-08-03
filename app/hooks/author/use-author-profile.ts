@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
@@ -11,8 +11,6 @@ import {
   clearDraft,
   buildPayloads,
   splitListValue,
-  buildInitialPublicationForm,
-  mapPublicationToForm,
 } from "@/app/hooks/author-profile-utils";
 
 // Types / Queries
@@ -22,37 +20,16 @@ import {
   updateAuthorQuery,
   type AuthorInsert,
 } from "@/lib/db/authors/authors-queries";
-import {
-  createPublicationsQuery,
-  getPublicationByUserIdQuery,
-  updatePublicationQuery,
-} from "@/lib/db/publications/publications-queries";
-import {
-  getProfileByIdQuery,
-  updateProfileQuery as _updateProfileQuery,
-} from "@/lib/db/profiles/profile-queries";
-import {
-  AuthorFormState,
-  ProfileFormState,
-  PublicationFormState,
-} from "@/lib/types/authors";
-import { DashboardUser } from "../use-profile-session";
+import { updateProfileQuery as _updateProfileQuery } from "@/lib/db/profiles/profile-queries";
+import { AuthorFormState } from "@/lib/types/authors";
 
-export function useAuthorProfile(user: DashboardUser) {
+export function useAuthorProfile(userId: string) {
   const { addToast } = useToast();
   const supabase = createBrowserSupabaseClient();
 
-  const isPublication = useMemo(() => {
-    return user.role === "publication";
-  }, [user]);
+  type CoreForm = AuthorFormState;
 
-  type AuthorProfileForm = ProfileFormState & AuthorFormState;
-  type PublicationProfileForm = ProfileFormState & PublicationFormState;
-  type CoreForm = AuthorProfileForm | PublicationProfileForm;
-
-  const [form, setForm] = useState<CoreForm>(() =>
-    isPublication ? buildInitialPublicationForm(user) : buildInitialForm(user),
-  );
+  const [form, setForm] = useState<CoreForm>(() => buildInitialForm());
 
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,9 +43,7 @@ export function useAuthorProfile(user: DashboardUser) {
       setIsLoading(true);
       setLoadError(null);
 
-      const { data, error } = isPublication
-        ? await getPublicationByUserIdQuery(supabase, user.id)
-        : await getAuthorByUserIdQuery(supabase, user.id);
+      const { data, error } = await getAuthorByUserIdQuery(supabase, userId);
 
       if (!isMounted) return;
 
@@ -77,42 +52,22 @@ export function useAuthorProfile(user: DashboardUser) {
         setIsLoading(false);
         return;
       } else {
-        if (isPublication) {
-          const mapped = data
-            ? mapPublicationToForm(data, user)
-            : buildInitialPublicationForm(user);
-          setForm((current) => ({
-            ...current,
-            name: mapped.name,
-            phone: mapped.phone,
-            username: mapped.username,
-            contact_email: mapped.contact_email,
-            subscription_plan: mapped.subscription_plan,
-            bio: mapped.bio,
-            location: mapped.location,
-            socialLinks: mapped.socialLinks,
-            awards: mapped.awards,
-          }));
-        } else {
-          const mapped = data
-            ? mapAuthorToForm(data, user)
-            : buildInitialForm(user);
-          setForm((current) => ({
-            ...current,
-            name: mapped.name,
-            phone: mapped.phone,
-            username: mapped.username,
-            contact_email: mapped.contact_email,
-            subscription_plan: mapped.subscription_plan,
-            pen_name: mapped.pen_name,
-            bio: mapped.bio,
-            genres: mapped.genres,
-            languages: mapped.languages,
-            location: mapped.location,
-            socialLinks: mapped.socialLinks,
-            awards: mapped.awards,
-          }));
-        }
+        const mapped = data ? mapAuthorToForm(data) : buildInitialForm();
+        console.log("Mapped Author Data:", data);
+        setForm((current) => ({
+          ...current,
+          avatar_url: mapped.avatar_url,
+          phone: mapped.phone,
+          pen_name: mapped.pen_name,
+          bio: mapped.bio,
+          genres: mapped.genres,
+          languages: mapped.languages,
+          location: mapped.location,
+          socialLinks: mapped.socialLinks,
+          awards: mapped.awards,
+          is_verified: mapped.is_verified,
+          is_active: mapped.is_active,
+        }));
         setAuthorId(data?.id ?? null);
       }
     }
@@ -122,7 +77,7 @@ export function useAuthorProfile(user: DashboardUser) {
     return () => {
       isMounted = false;
     };
-  }, [supabase, user]);
+  }, [supabase, userId]);
 
   function setField(field: string, value: unknown) {
     setForm((current) => ({ ...current, [field]: value }) as CoreForm);
@@ -133,17 +88,13 @@ export function useAuthorProfile(user: DashboardUser) {
     value: string,
     checked: boolean,
   ) {
-    if (isPublication) {
-      return;
-    }
-
-    const currentValues = splitListValue((form as AuthorProfileForm)[field]);
+    const currentValues = splitListValue((form as CoreForm)[field]);
     const nextValues = checked
       ? [...new Set([...currentValues, value])]
       : currentValues.filter((item) => item !== value);
 
     setForm((current) => ({
-      ...(current as AuthorProfileForm),
+      ...(current as CoreForm),
       [field]: nextValues.join(", "),
     }));
   }
@@ -155,24 +106,20 @@ export function useAuthorProfile(user: DashboardUser) {
 
   async function saveProfile() {
     setIsSaving(true);
-    const isPublication = user.role === "publication";
 
     try {
-      const { authorPayload, profilePatch } = buildPayloads(user.id, {
+      const { rolePayload } = buildPayloads(userId, {
         ...form,
       } as any);
 
       // Fetch existing records once
-      const existingAuthorRes = isPublication
-        ? await getPublicationByUserIdQuery(supabase, user.id)
-        : await getAuthorByUserIdQuery(supabase, user.id);
-      const existingProfileRes = await getProfileByIdQuery(supabase, user.id);
+      const existingAuthorRes = await getAuthorByUserIdQuery(supabase, userId);
 
       let result;
       if (existingAuthorRes.data) {
         // Only include changed fields in the patch when updating
         const patch: any = {};
-        for (const [key, value] of Object.entries(authorPayload)) {
+        for (const [key, value] of Object.entries(rolePayload)) {
           if (key === "profile_id") continue;
           const existingValue = (existingAuthorRes.data as any)[key];
           if (JSON.stringify(existingValue) !== JSON.stringify(value)) {
@@ -182,27 +129,16 @@ export function useAuthorProfile(user: DashboardUser) {
 
         result =
           patch && Object.keys(patch).length > 0
-            ? isPublication
-              ? await updatePublicationQuery(
-                  supabase,
-                  existingAuthorRes.data.id,
-                  patch,
-                )
-              : await updateAuthorQuery(
-                  supabase,
-                  existingAuthorRes.data.id,
-                  patch,
-                )
+            ? await updateAuthorQuery(
+                supabase,
+                existingAuthorRes.data.id,
+                patch,
+              )
             : { data: existingAuthorRes.data, error: null };
       } else {
         result =
-          authorPayload && Object.keys(authorPayload).length > 0
-            ? isPublication
-              ? await createPublicationsQuery(
-                  supabase,
-                  authorPayload as AuthorInsert,
-                )
-              : await createAuthorQuery(supabase, authorPayload as AuthorInsert)
+          rolePayload && Object.keys(rolePayload).length > 0
+            ? await createAuthorQuery(supabase, rolePayload as AuthorInsert)
             : {
                 data: null,
                 error: null,
@@ -212,64 +148,21 @@ export function useAuthorProfile(user: DashboardUser) {
       if (result.error || !result.data)
         throw result.error ?? new Error("Failed to save author profile.");
 
-      // Update profile only with changed fields
-      const profilePatchOnly: any = {};
-      for (const [key, value] of Object.entries(profilePatch)) {
-        if (key === "id") continue;
-        const existingValue = (existingProfileRes.data as any)[key];
-        if (JSON.stringify(existingValue) !== JSON.stringify(value)) {
-          profilePatchOnly[key] = value === undefined ? null : value;
-        }
-      }
-
-      let updatedProfile = existingProfileRes.data ?? user;
-      if (Object.keys(profilePatchOnly).length > 0) {
-        const profileResult = await _updateProfileQuery(
-          supabase,
-          user.id,
-          profilePatchOnly,
-        );
-        if (profileResult.error) throw profileResult.error;
-        updatedProfile = profileResult.data ?? updatedProfile;
-      }
-
       setAuthorId(result.data.id);
-      clearDraft(user.id);
+      clearDraft(userId);
 
-      const nextForm = isPublication
-        ? (mapPublicationToForm(
-            result.data,
-            updatedProfile,
-          ) as PublicationProfileForm)
-        : (mapAuthorToForm(result.data, updatedProfile) as AuthorProfileForm);
+      const nextForm = mapAuthorToForm(result.data) as CoreForm;
 
       setForm((current) => {
-        if (isPublication) {
-          return {
-            ...current,
-            bio: nextForm.bio,
-            location: nextForm.location,
-            socialLinks: nextForm.socialLinks,
-            name: nextForm.name,
-            phone: nextForm.phone,
-            username: nextForm.username,
-            contact_email: nextForm.contact_email,
-            subscription_plan: nextForm.subscription_plan,
-          } as CoreForm;
-        }
-
-        const authorNextForm = nextForm as AuthorProfileForm;
+        const authorNextForm = nextForm as CoreForm;
 
         return {
           ...current,
+          avatar_url: authorNextForm.avatar_url,
+          phone: authorNextForm.phone,
           bio: authorNextForm.bio,
           location: authorNextForm.location,
           socialLinks: authorNextForm.socialLinks,
-          name: authorNextForm.name,
-          phone: authorNextForm.phone,
-          username: authorNextForm.username,
-          contact_email: authorNextForm.contact_email,
-          subscription_plan: authorNextForm.subscription_plan,
           pen_name: authorNextForm.pen_name,
           genres: authorNextForm.genres,
           languages: authorNextForm.languages,
@@ -277,14 +170,11 @@ export function useAuthorProfile(user: DashboardUser) {
       });
 
       const toastMessage = authorId
-        ? `${isPublication ? "Publication" : "Author"} profile updated successfully.`
-        : `${isPublication ? "Publication" : "Author"} profile created successfully.`;
+        ? "Author profile updated successfully!"
+        : "Author profile created successfully!";
       addToast(toastMessage, "success");
     } catch (error) {
-      addToast(
-        `Unable to save ${isPublication ? "Publication" : "Author"} profile. Please try again.`,
-        "error",
-      );
+      addToast(`Unable to save author profile. Please try again.`, "error");
       console.error("Error saving profile:", error);
       throw error;
     } finally {
@@ -305,6 +195,6 @@ export function useAuthorProfile(user: DashboardUser) {
     toggleLanguage: (language: string, checked: boolean) =>
       toggleListField("languages", language, checked),
     saveProfile,
-    user,
+    userId,
   };
 }

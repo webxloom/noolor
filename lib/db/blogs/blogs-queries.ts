@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type BlogRecord = {
   id: string;
-  author_id: string;
+  host_id: string;
   title: string;
   slug?: string | null;
   content: string;
@@ -19,7 +19,7 @@ export type BlogInsert = Omit<BlogRecord, "created_at" | "id"> & {
   id?: string;
 };
 
-export type BlogUpdate = Partial<Omit<BlogInsert, "author_id">>;
+export type BlogUpdate = Partial<Omit<BlogInsert, "host_id">>;
 
 // Get all blogs
 export async function getAllBlogsQuery(
@@ -29,7 +29,7 @@ export async function getAllBlogsQuery(
   return supabase
     .from("blogs")
     .select(
-      `*, author:profiles!blogs_author_id_fkey (
+      `*, host:profiles!blogs_host_id_fkey (
       name,role,avatar_url
     )`,
     )
@@ -46,7 +46,19 @@ export async function getBlogsByUserIdQuery(
   return supabase
     .from("blogs")
     .select("*")
-    .eq("author_id", userId)
+    .eq("host_id", userId)
+    .order("created_at", { ascending: false });
+}
+
+// Get blogs by roleId and role (author or publication)
+export async function getBlogsByHostIdQuery(
+  supabase: SupabaseClient,
+  hostId: string,
+) {
+  return supabase
+    .from("blogs")
+    .select("*")
+    .eq("host_id", hostId)
     .order("created_at", { ascending: false });
 }
 
@@ -75,7 +87,7 @@ export async function getPublishedBlogBySlugQuery(
     return { data: null, error };
   }
 
-  const authorId = blogDetail?.author_id;
+  const authorId = blogDetail?.host_id;
   const isPublication = blogDetail?.profile?.role?.includes("publication");
   let authorDetail = null;
 

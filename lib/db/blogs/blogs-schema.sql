@@ -1,6 +1,6 @@
 create table public.blogs (
   id uuid primary key default gen_random_uuid(),
-  author_id uuid references public.profiles(id) on delete set null,
+  host_id uuid references public.profiles(id) on delete set null,
   title text not null,
   slug text unique not null,
   content text not null,
@@ -13,11 +13,8 @@ create table public.blogs (
   created_at timestamp with time zone default now()
 );
 
-alter table public.blogs
-  add column author_id uuid references public.profiles(id) on delete set null;
-
 -- Indexes for performance
-create index idx_blogs_user_id on public.blogs(author_id);
+create index idx_blogs_user_id on public.blogs(host_id);
 create index idx_blogs_is_published on public.blogs(is_published);
 create index idx_blogs_tags on public.blogs using gin(tags);
 create index idx_blogs_title_search on public.blogs using gin(to_tsvector('english', title));
@@ -44,7 +41,7 @@ BEGIN
     NEW.slug := trim(both '-' FROM NEW.slug);
 
     -- Append author id prefix for uniqueness
-    NEW.slug := NEW.slug || '-' || left(NEW.author_id::text, 8);
+    NEW.slug := NEW.slug || '-' || left(NEW.host_id::text, 8);
   END IF;
 
   RETURN NEW;
@@ -54,7 +51,7 @@ $$ LANGUAGE plpgsql;
 -- Trigger to set slug on insert
 CREATE TRIGGER blogs_generate_slug
 BEFORE INSERT OR UPDATE OF title
-ON public.books
+ON public.blogs
 FOR EACH ROW
 EXECUTE FUNCTION public.generate_blog_slug();
 
@@ -71,7 +68,7 @@ using (is_published = true);
 CREATE POLICY "Hosts can view their own blogs"
 ON public.blogs
 FOR SELECT
-USING (author_id = auth.uid());
+USING (host_id = auth.uid());
 
 -- Authenticated users can create blogs
 CREATE POLICY "Authenticated users can create blogs"
@@ -81,7 +78,7 @@ TO authenticated
 WITH CHECK (
     EXISTS (
         SELECT 1 FROM public.profiles p
-        WHERE p.id = author_id
+        WHERE p.id = host_id
     )
 );
 
@@ -91,10 +88,10 @@ ON public.blogs
 FOR UPDATE
 TO authenticated
 USING (
-    author_id = auth.uid()
+    host_id = auth.uid()
 )
 WITH CHECK (
-    author_id = auth.uid()
+    host_id = auth.uid()
 );
 
 -- Hosts can delete their own blogs
@@ -103,5 +100,5 @@ ON public.blogs
 FOR DELETE
 TO authenticated
 USING (
-    author_id = auth.uid()
+    host_id = auth.uid()
 );

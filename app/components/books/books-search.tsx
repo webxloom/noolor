@@ -11,7 +11,7 @@ import {
   SelectContent,
   SelectItem,
 } from "../ui/select";
-import { BookListItem } from "@/app/(pages)/books/page";
+import { BookRecord } from "@/lib/db/books/books-queries";
 
 export default function BooksSearch({
   handleSearchSubmit,
@@ -38,19 +38,31 @@ export default function BooksSearch({
       isFree: string;
     }>
   >;
-  books: BookListItem[];
+  books: BookRecord[];
 }) {
   const { search, debouncedSearch, genre, language, isFree } = filters;
 
   const languageOptions = useMemo(() => {
-    return Array.from(new Set(books.map((book) => book.language))).sort(
-      (left, right) => left.localeCompare(right),
+    const languagesSet = new Set<string>();
+    books.forEach((book) => {
+      if (book.language) {
+        languagesSet.add(book.language);
+      }
+    });
+    return Array.from(languagesSet).sort((left, right) =>
+      left.localeCompare(right),
     );
   }, [books]);
 
   const genreOptions = useMemo(() => {
-    return Array.from(new Set(books.map((book) => book.genre))).sort(
-      (left, right) => left.localeCompare(right),
+    const genresSet = new Set<string>();
+    books.forEach((book) => {
+      if (book.genres && book.genres.length > 0) {
+        book.genres.forEach((genre) => genresSet.add(genre));
+      }
+    });
+    return Array.from(genresSet).sort((left, right) =>
+      left.localeCompare(right),
     );
   }, [books]);
 

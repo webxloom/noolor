@@ -21,7 +21,7 @@ import {
   mapBlogToForm,
   matchesBlogSearch,
   slugifyBlogTitle,
-} from "@/app/components/authors/author-dashboard/blogs/shared";
+} from "@/app/components/blogs/shared";
 import { useToast } from "@/app/contexts/toast-context";
 
 const authorImageBucket = process.env.SUPABASE_BUCKET_NAME ?? "noolor";

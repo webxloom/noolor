@@ -123,7 +123,7 @@ export default async function BookDetailPage({
     pageCount: book?.page_count ?? undefined,
     price: book?.price ?? undefined,
     publishedYear: book?.published_year ?? undefined,
-    quotes: Array.isArray(book?.quotes) ? book.quotes : [],
+    quotes: book?.quote ? [book.quote] : [],
     rating,
     reviewCount: reviewRows.length,
     reviews: reviewRows.map((review) => ({

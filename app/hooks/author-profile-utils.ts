@@ -16,7 +16,7 @@ import {
 import {
   emptySocialLinks,
   mapSocialLinksToForm,
-} from "@/app/hooks/author/use-author-social-links";
+} from "@/app/hooks/use-social-links";
 
 export const authorImageBucket = process.env.SUPABASE_BUCKET_NAME ?? "noolor";
 export const authorImageFolder = "author-images";
@@ -35,15 +35,10 @@ export function toList(value: string) {
     .filter(Boolean);
 }
 
-export function mapAuthorToForm(author: AuthorRecord, user: any) {
+export function mapAuthorToForm(author: AuthorRecord) {
   return {
-    // profile
-    name: user.name,
-    phone: user.phone,
-    username: user.username,
-    contact_email: user.contact_email ?? "",
-    subscription_plan: user.subscription_plan ?? "free",
-    // author
+    avatar_url: author.author_avatar_url ?? "",
+    phone: author.phone_number ?? "",
     pen_name: author.pen_name ?? "",
     awards:
       author.awards && author.awards.length > 0
@@ -58,21 +53,16 @@ export function mapAuthorToForm(author: AuthorRecord, user: any) {
     languages: (author.languages ?? []).join(", "),
     location: author.location ?? "",
     socialLinks: mapSocialLinksToForm(author.social_links),
+    is_verified: author.is_verified,
+    is_active: author.is_active,
   };
 }
 
-export function mapPublicationToForm(
-  publication: PublicationRecord,
-  user: any,
-) {
+export function mapPublicationToForm(publication: PublicationRecord) {
   return {
-    // profile
-    name: user.name,
-    phone: user.phone,
-    username: user.username,
-    contact_email: user.contact_email ?? "",
-    subscription_plan: user.subscription_plan ?? "free",
-    // publication
+    publication_name: publication.publication_name ?? "",
+    phone: publication.phone_number ?? "",
+    avatar_url: publication.publication_avatar_url ?? "",
     awards:
       publication.awards && publication.awards.length > 0
         ? publication.awards.map((award) => ({
@@ -84,18 +74,15 @@ export function mapPublicationToForm(
     bio: publication.bio ?? "",
     location: publication.location ?? "",
     socialLinks: mapSocialLinksToForm(publication.social_links),
+    is_verified: publication.is_verified,
+    is_active: publication.is_active,
   };
 }
 
-export function buildInitialForm(user: any) {
+export function buildInitialForm() {
   return {
-    // profile fields
-    name: user.name,
-    phone: user.phone,
-    username: user.username,
-    contact_email: user.contact_email ?? "",
-    subscription_plan: user.subscription_plan ?? "free",
-    // author fields
+    avatar_url: "",
+    phone: "",
     pen_name: "",
     awards: [emptyAward()],
     bio: "",
@@ -103,23 +90,21 @@ export function buildInitialForm(user: any) {
     languages: "",
     location: "",
     socialLinks: emptySocialLinks(),
-  } as ProfileFormState & AuthorFormState;
+    is_verified: false,
+    is_active: false,
+  } as AuthorFormState;
 }
 
-export function buildInitialPublicationForm(user: any) {
+export function buildInitialPublicationForm() {
   return {
-    // profile fields
-    name: user.name,
-    phone: user.phone,
-    username: user.username,
-    contact_email: user.contact_email ?? "",
-    subscription_plan: user.subscription_plan ?? "free",
-    // author fields
+    publication_name: "",
+    phone: "",
+    avatar_url: "",
     awards: [emptyAward()],
     bio: "",
     location: "",
     socialLinks: emptySocialLinks(),
-  } as ProfileFormState & PublicationFormState;
+  } as PublicationFormState;
 }
 
 export function getFileExtension(fileName: string) {
@@ -191,18 +176,8 @@ export function clearDraft(userId: string) {
 
 export function buildPayloads(
   userId: string,
-  form:
-    | (ProfileFormState & AuthorFormState)
-    | (ProfileFormState & PublicationFormState),
+  form: AuthorFormState | PublicationFormState,
 ) {
-  const profilePart: ProfileFormState = {
-    name: form.name.trim(),
-    phone: form.phone.trim(),
-    username: form.username.trim(),
-    contact_email: form.contact_email.trim(),
-    subscription_plan: form.subscription_plan.trim(),
-  };
-
   const normalizedAwards = form.awards
     ? form.awards
         .map((award) => ({
@@ -229,7 +204,7 @@ export function buildPayloads(
   const isAuthorForm =
     "pen_name" in form || "genres" in form || "languages" in form;
 
-  const authorPayload = isAuthorForm
+  const rolePayload = isAuthorForm
     ? {
         profile_id: userId,
         pen_name: form.pen_name.trim(),
@@ -237,6 +212,7 @@ export function buildPayloads(
         genres: toList(form.genres),
         languages: toList(form.languages),
         location: form.location.trim(),
+        phone_number: form.phone?.trim() || null,
         awards:
           normalizedAwards.length > 0
             ? normalizedAwards.map((award) => ({
@@ -249,6 +225,8 @@ export function buildPayloads(
       }
     : {
         profile_id: userId,
+        publication_name: form.publication_name.trim(),
+        phone_number: form.phone?.trim() || null,
         bio: form.bio.trim(),
         location: form.location.trim(),
         awards:
@@ -262,11 +240,7 @@ export function buildPayloads(
         social_links: hasSocialLinks ? socialLinks : null,
       };
 
-  const profilePatch: ProfileUpdate = {
-    ...profilePart,
-  };
-
-  return { authorPayload, profilePatch };
+  return { rolePayload };
 }
 
 export async function uploadAuthorAsset(

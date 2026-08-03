@@ -2,11 +2,15 @@
 create table public.publications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE UNIQUE,
+  publication_name TEXT NOT NULL,
   slug TEXT NOT NULL UNIQUE,
+  publication_avatar_url TEXT,
   location text,
   bio TEXT,
+  phone_number TEXT,
   awards JSONB DEFAULT '{}'::jsonb,
   social_links JSONB DEFAULT '{}'::jsonb,
+  publication_avatar_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

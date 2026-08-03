@@ -12,7 +12,8 @@ export type AuthorUpdate = Partial<Omit<AuthorInsert, "user_id">>;
 export async function getAuthorsQuery(supabase: SupabaseClient) {
   return supabase
     .from(authorTable)
-    .select(`*, profile:profiles(id,name,avatar_url)`)
+    .select("*")
+    .eq("is_active", true)
     .order("created_at", { ascending: false });
 }
 
@@ -22,11 +23,9 @@ export async function getAuthorBySlugQuery(
 ) {
   return supabase
     .from(authorTable)
-    .select(`*, profile:profiles(*)`)
+    .select("*")
     .eq("slug", slug)
-    .maybeSingle<
-      AuthorRecord & { profile: { name: string; avatar_url?: string } }
-    >();
+    .maybeSingle<AuthorRecord>();
 }
 
 export async function getAuthorByIdQuery(

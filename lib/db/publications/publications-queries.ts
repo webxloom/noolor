@@ -1,10 +1,10 @@
-import { AuthorRecord } from "@/lib/types/authors";
+import { PublicationRecord } from "@/lib/types/authors";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const publicationsTable = "publications";
 
 export type PublicationsInsert = Omit<
-  AuthorRecord,
+  PublicationRecord,
   "created_at" | "id" | "slug"
 > & {
   id?: string;
@@ -15,7 +15,8 @@ export type PublicationsUpdate = Partial<Omit<PublicationsInsert, "user_id">>;
 export async function getPublicationsQuery(supabase: SupabaseClient) {
   return supabase
     .from(publicationsTable)
-    .select(`*, profile:profiles(id,name,avatar_url)`)
+    .select("*")
+    .eq("is_active", true)
     .order("created_at", { ascending: false });
 }
 
@@ -28,7 +29,7 @@ export async function getPublicationsBySlugQuery(
     .select(`*, profile:profiles(*)`)
     .eq("slug", slug)
     .maybeSingle<
-      AuthorRecord & { profile: { name: string; avatar_url?: string } }
+      PublicationRecord & { profile: { name: string; avatar_url?: string } }
     >();
 }
 
@@ -40,7 +41,7 @@ export async function getPublicationsByIdQuery(
     .from(publicationsTable)
     .select(`*, profile:profiles(name)`)
     .eq("id", authorId)
-    .maybeSingle<AuthorRecord>();
+    .maybeSingle<PublicationRecord>();
 }
 
 export async function getPublicationByUserIdQuery(
@@ -51,7 +52,7 @@ export async function getPublicationByUserIdQuery(
     .from(publicationsTable)
     .select("*")
     .eq("profile_id", userId)
-    .maybeSingle<AuthorRecord>();
+    .maybeSingle<PublicationRecord>();
 
   if (error) {
     return { data: null, error };
@@ -68,7 +69,7 @@ export async function createPublicationsQuery(
     .from(publicationsTable)
     .insert(publication)
     .select()
-    .single<AuthorRecord>();
+    .single<PublicationRecord>();
 }
 
 export async function updatePublicationQuery(
@@ -81,7 +82,7 @@ export async function updatePublicationQuery(
     .update(patch)
     .eq("id", publicationId)
     .select()
-    .single<AuthorRecord>();
+    .single<PublicationRecord>();
 }
 
 export async function deletePublicationQuery(

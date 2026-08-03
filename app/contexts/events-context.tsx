@@ -1,36 +1,29 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
+import { useEventsList } from "../hooks/events/use-events-list";
 
-import { useAuthorEvents } from "@/app/hooks/author/use-author-events";
+type EventsContextValue = ReturnType<typeof useEventsList>;
 
-type AuthorEventsContextValue = ReturnType<typeof useAuthorEvents>;
+const EventsContext = createContext<EventsContextValue | null>(null);
 
-const AuthorEventsContext = createContext<AuthorEventsContextValue | null>(
-  null,
-);
-
-export function AuthorEventsProvider({
+export function EventsProvider({
   children,
   value,
 }: {
   children: ReactNode;
-  value: AuthorEventsContextValue;
+  value: EventsContextValue;
 }) {
   return (
-    <AuthorEventsContext.Provider value={value}>
-      {children}
-    </AuthorEventsContext.Provider>
+    <EventsContext.Provider value={value}>{children}</EventsContext.Provider>
   );
 }
 
-export function useAuthorEventsContext() {
-  const context = useContext(AuthorEventsContext);
+export function useEventsContext() {
+  const context = useContext(EventsContext);
 
   if (!context) {
-    throw new Error(
-      "useAuthorEventsContext must be used within an AuthorEventsProvider",
-    );
+    throw new Error("useEventsContext must be used within an EventsProvider");
   }
 
   return context;

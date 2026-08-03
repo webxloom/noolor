@@ -2,33 +2,29 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 
-import { useAuthorBooks } from "@/app/hooks/author/use-author-books";
+import { useBooksList } from "@/app/hooks/books/use-books-list";
 
-type AuthorBooksContextValue = ReturnType<typeof useAuthorBooks>;
+type BooksContextValue = ReturnType<typeof useBooksList>;
 
-const AuthorBooksContext = createContext<AuthorBooksContextValue | null>(null);
+const BooksContext = createContext<BooksContextValue | null>(null);
 
-export function AuthorBooksProvider({
+export function BooksProvider({
   children,
   value,
 }: {
   children: ReactNode;
-  value: AuthorBooksContextValue;
+  value: BooksContextValue;
 }) {
   return (
-    <AuthorBooksContext.Provider value={value}>
-      {children}
-    </AuthorBooksContext.Provider>
+    <BooksContext.Provider value={value}>{children}</BooksContext.Provider>
   );
 }
 
-export function useAuthorBooksContext() {
-  const context = useContext(AuthorBooksContext);
+export function useBooksContext() {
+  const context = useContext(BooksContext);
 
   if (!context) {
-    throw new Error(
-      "useAuthorBooksContext must be used within an AuthorBooksProvider",
-    );
+    throw new Error("useBooksContext must be used within an BooksProvider");
   }
 
   return context;

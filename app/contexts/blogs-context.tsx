@@ -1,33 +1,29 @@
 "use client";
 
 import { createContext, useContext, type ReactNode } from "react";
-import { useAuthorBlogs } from "../hooks/author/use-author-blogs";
+import { useBlogsList } from "../hooks/blogs/use-blogs-list";
 
-type AuthorBlogsContextValue = ReturnType<typeof useAuthorBlogs>;
+type BlogsContextValue = ReturnType<typeof useBlogsList>;
 
-const AuthorBlogsContext = createContext<AuthorBlogsContextValue | null>(null);
+const BlogsContext = createContext<BlogsContextValue | null>(null);
 
-export function AuthorBlogsProvider({
+export function BlogsProvider({
   children,
   value,
 }: {
   children: ReactNode;
-  value: AuthorBlogsContextValue;
+  value: BlogsContextValue;
 }) {
   return (
-    <AuthorBlogsContext.Provider value={value}>
-      {children}
-    </AuthorBlogsContext.Provider>
+    <BlogsContext.Provider value={value}>{children}</BlogsContext.Provider>
   );
 }
 
-export function useAuthorBlogsContext() {
-  const context = useContext(AuthorBlogsContext);
+export function useBlogsContext() {
+  const context = useContext(BlogsContext);
 
   if (!context) {
-    throw new Error(
-      "useAuthorBlogsContext must be used within an AuthorBlogsProvider",
-    );
+    throw new Error("useBlogsContext must be used within an BlogsProvider");
   }
 
   return context;

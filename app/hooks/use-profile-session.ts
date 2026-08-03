@@ -1,3 +1,4 @@
+"use client";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
@@ -39,6 +40,28 @@ export function useProfileSession() {
   const [profileUser, setProfileUser] = useState<DashboardUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const currentSessionUserIdRef = useRef<string | null>(null);
+
+  const refreshProfile = async () => {
+    const supabase = createBrowserSupabaseClient();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData.session;
+
+    if (!session?.user?.id) {
+      setProfileUser(null);
+      return;
+    }
+
+    const { data, error } = await getProfileByIdQuery(
+      supabase,
+      session.user.id,
+    );
+
+    if (error || !data) {
+      setProfileUser(null);
+    } else {
+      setProfileUser(mapProfileToDashboardUser(data));
+    }
+  };
 
   useEffect(() => {
     const supabase = createBrowserSupabaseClient();
@@ -98,5 +121,5 @@ export function useProfileSession() {
     };
   }, []);
 
-  return { profileUser, isLoading };
+  return { profileUser, isLoading, refreshProfile };
 }

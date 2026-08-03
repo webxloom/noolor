@@ -12,7 +12,7 @@ export type BookRecord = {
   language?: string | null;
   genres?: string[] | null;
   description?: string | null;
-  quotes?: string[] | null;
+  quote?: string | null;
   is_free?: boolean | null;
   price?: number | null;
   page_count?: number | null;
@@ -20,6 +20,9 @@ export type BookRecord = {
   content_url?: string | null;
   awards?: Record<string, any> | null;
   created_at?: string | null;
+  author_name?: string | null;
+  publication_name?: string | null;
+  page_limit?: number | null;
 };
 
 export type BookInsert = Omit<BookRecord, "created_at" | "id"> & {
@@ -59,6 +62,28 @@ export async function getBooksByAuthorIdQuery(
     .from("books")
     .select("*")
     .or(`author_id.eq.${authorId},publication_id.eq.${authorId}`)
+    .order("created_at", { ascending: false });
+}
+
+// Get all books
+export async function getAllBooksQuery(supabase: SupabaseClient) {
+  return supabase
+    .from("books")
+    .select("*")
+    .order("created_at", { ascending: false });
+}
+
+// Get books by roleId and role (author or publication)
+export async function getBooksByRoleIdQuery(
+  supabase: SupabaseClient,
+  roleId: string,
+  role: string,
+) {
+  const roleColumn = role === "author" ? "author_id" : "publication_id";
+  return supabase
+    .from("books")
+    .select("*")
+    .eq(roleColumn, roleId)
     .order("created_at", { ascending: false });
 }
 
@@ -128,7 +153,7 @@ export async function deleteBookQuery(
 }
 
 // Check if an author has any books
-export async function checkAuthorhasBooks(authorId: string) {
+export async function checkRolehasBooks(authorId: string) {
   const supabase = createBrowserSupabaseClient();
 
   const { data, error } = await supabase

@@ -29,14 +29,12 @@ type PublicationListItem = PublicationRecord & {
 };
 
 function mapPublicationToListItem(
-  publication: PublicationRecord & {
-    profile?: { name?: string | null; avatar_url?: string | null } | null;
-  },
+  publication: PublicationRecord,
 ): PublicationListItem {
   return {
     ...publication,
-    name: publication.profile?.name ?? "Untitled publication",
-    avatarUrl: publication.profile?.avatar_url ?? null,
+    name: publication.publication_name ?? "Untitled publication",
+    avatarUrl: publication.publication_avatar_url ?? null,
   };
 }
 

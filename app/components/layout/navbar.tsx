@@ -60,7 +60,7 @@ function NavLinks({ messages }: { messages: (typeof enMessages)["navbar"] }) {
         href="/publications"
         className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors flex items-center gap-2"
       >
-        <Library className="h-4 w-4" /> Publications
+        <Library className="h-4 w-4" /> {messages.publications}
       </Link>
       {/* <Link
         href="/groups"
@@ -83,6 +83,9 @@ export function Navbar() {
   const { profileUser, isLoading } = useProfileSession();
   const [language, setLanguage] = useState<SupportedLanguage>("en");
   const messages = language === "en" ? enMessages.navbar : taMessages.navbar;
+  const isAuthor = profileUser?.role?.toLowerCase().includes("author") || false;
+  const isPublication =
+    profileUser?.role?.toLowerCase().includes("publication") || false;
 
   useEffect(() => {
     const storedLanguage = window.localStorage.getItem("preferredLanguage");
@@ -213,6 +216,22 @@ export function Navbar() {
                     >
                       {messages.dashboard}
                     </DropdownMenuItem>
+                    {isAuthor && (
+                      <DropdownMenuItem
+                        onClick={() => router.push("/dashboard/author")}
+                        className="cursor-pointer hover:bg-accent/50 transition-colors flex items-center gap-2"
+                      >
+                        {messages.authorDashboard}
+                      </DropdownMenuItem>
+                    )}
+                    {isPublication && (
+                      <DropdownMenuItem
+                        onClick={() => router.push("/dashboard/publication")}
+                        className="cursor-pointer hover:bg-accent/50 transition-colors flex items-center gap-2"
+                      >
+                        {messages.publicationDashboard}
+                      </DropdownMenuItem>
+                    )}
 
                     <DropdownMenuItem
                       onClick={handleLogout}

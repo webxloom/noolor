@@ -3,7 +3,7 @@ import { useToast } from "@/app/contexts/toast-context";
 import { findProfileByPhoneOrEmail } from "@/lib/db/profiles/profile-queries";
 import { useState } from "react";
 import { useRegisterVerification } from "./use-register-verification";
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+// Server-side admin actions are performed via an API route using the service role key.
 
 export function useForgotPwdSubmit(stateDetails: any) {
   const { addToast } = useToast();
@@ -99,7 +99,6 @@ export function useForgotPwdSubmit(stateDetails: any) {
   };
 
   const handlePasswordReset = async () => {
-    const supabase = createBrowserSupabaseClient();
     if (!newPassword || !confirmPassword) {
       addToast("Please enter both password fields", "error");
       return;
@@ -123,12 +122,16 @@ export function useForgotPwdSubmit(stateDetails: any) {
     setIsLoading(true);
     const userId = userDetail.id;
     try {
-      const { data, error } = await supabase.auth.admin.updateUserById(userId, {
-        password: newPassword,
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, password: newPassword }),
       });
 
-      if (error) {
-        throw new Error(`Failed to update password: ${error.message}`);
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json?.error || "Failed to update password");
       }
 
       addToast("Password reset successful! You can now login.", "success");

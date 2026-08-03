@@ -19,8 +19,7 @@ export type ProfileRecord = {
 
 export type ProfileUpdate = Partial<Omit<ProfileRecord, "id">>;
 
-const authorImageBucket = process.env.SUPABASE_BUCKET_NAME ?? "noolor";
-const authorImageFolder = "author-images";
+const noolorImageBucket = process.env.SUPABASE_BUCKET_NAME ?? "noolor";
 
 export async function getProfileByIdQuery(
   supabase: SupabaseClient,
@@ -185,9 +184,9 @@ export async function uploadProfileImageQuery(
 
     if (prevUrl) {
       try {
-        const prevPath = getStoragePath(prevUrl, authorImageBucket);
+        const prevPath = getStoragePath(prevUrl, noolorImageBucket);
         if (prevPath && prevPath !== fileNamePrefix) {
-          await supabase.storage.from(authorImageBucket).remove([prevPath]);
+          await supabase.storage.from(noolorImageBucket).remove([prevPath]);
         }
       } catch (e) {
         console.warn("Failed to remove previous avatar from storage:", e);
@@ -196,7 +195,7 @@ export async function uploadProfileImageQuery(
 
     // Upload current file to Supabase Storage
     const { error: uploadError } = await supabase.storage
-      .from(authorImageBucket)
+      .from(noolorImageBucket)
       .upload(fileNamePrefix, file, {
         cacheControl: "3600",
         upsert: true,
@@ -208,7 +207,7 @@ export async function uploadProfileImageQuery(
 
     // Get the public URL of the uploaded image
     const { data } = supabase.storage
-      .from(authorImageBucket)
+      .from(noolorImageBucket)
       .getPublicUrl(fileNamePrefix);
     // Update the profile record with the new avatar URL
     const { error: updateError } = await updateProfileQuery(

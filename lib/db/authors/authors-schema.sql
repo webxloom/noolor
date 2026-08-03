@@ -4,15 +4,20 @@ CREATE TABLE public.authors (
     profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE UNIQUE,
     pen_name TEXT,
     slug TEXT NOT NULL UNIQUE,
+    author_avatar_url TEXT,
+    phone_number TEXT,
     location TEXT,
     bio TEXT,
     languages TEXT[] DEFAULT '{}',
     genres TEXT[] DEFAULT '{}',
     awards JSONB DEFAULT '{}'::jsonb,
     social_links JSONB DEFAULT '{}'::jsonb,
+    is_verified BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
 
 -- TRIGGER to update updated_at on author profile update
 CREATE TRIGGER authors_updated_at

@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
-import { Search } from "lucide-react";
 
 // Types / Queries
 import {
@@ -11,7 +10,6 @@ import {
 import type { AuthorRecord } from "@/lib/types/authors";
 
 // Components
-import { Button } from "@/app/components/ui/button";
 import { Skeleton } from "@/app/components/ui/skeleton";
 import { AuthorCard } from "@/app/components/shared/author-card";
 import AuthorsSearch from "@/app/components/authors/authors-search";
@@ -30,18 +28,17 @@ export type AuthorListItem = {
 
 function mapAuthorToListItem(
   author: AuthorRecord & {
-    profile?: { name?: string; avatar_url?: string } | null;
     book_count?: number;
   },
 ): AuthorListItem {
   return {
-    avatarUrl: author.profile?.avatar_url ?? undefined,
+    avatarUrl: author.author_avatar_url ?? undefined,
     bookCount: author.book_count ?? 0,
     genres: author.genres ?? [],
     id: author.id,
     languages: author.languages ?? [],
     location: author.location ?? undefined,
-    name: author.profile?.name ?? "",
+    name: author.pen_name ?? "",
     slug: author.slug,
     reviewCount: 0,
   };
@@ -186,19 +183,9 @@ export default function Authors() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center border rounded-xl bg-card border-dashed">
-              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                <Search className="h-6 w-6 text-muted-foreground" />
-              </div>
               <h3 className="font-serif text-xl font-bold mb-2">
                 No authors found
               </h3>
-              <p className="text-muted-foreground max-w-sm mb-6">
-                We couldn&apos;t find any authors matching your current filters.
-                Try adjusting your search or clearing filters.
-              </p>
-              <Button variant="outline" onClick={handleClearFilters}>
-                Clear Filters
-              </Button>
             </div>
           )}
         </div>

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 
 import { getAuthorBySlugQuery } from "@/lib/db/authors/authors-queries";
-import AuthorDetail from "@/app/components/authors/author-detail";
+import AuthorDashboard from "@/app/components/authors/author-dashboard/index";
 
 export type DetailedAuthorAward = {
   fileUrl?: string;
@@ -51,7 +51,13 @@ export default async function AuthorDetailPage({
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <AuthorDetail user={data.profile} />
+      {/* Back to authors */}
+      <div className="mb-4">
+        <a href="/authors" className="text-sm text-primary hover:underline">
+          &larr; Back to Authors list
+        </a>
+      </div>
+      <AuthorDashboard userId={data.profile_id} canEdit={false} />
     </div>
   );
 }
