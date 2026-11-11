@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 const featuredBooks = [
   {
     id: "1",
+    slug: "ponniyin-selvan",
     title: "Ponniyin Selvan",
     authorName: "Kalki Krishnamurthy",
     coverUrl: "",
@@ -18,6 +19,7 @@ const featuredBooks = [
   },
   {
     id: "2",
+    slug: "silappatikaram",
     title: "Silappatikaram",
     authorName: "Ilango Adigal",
     coverUrl: "",
@@ -29,6 +31,7 @@ const featuredBooks = [
   },
   {
     id: "3",
+    slug: "manimekalai",
     title: "Manimekalai",
     authorName: "Chithalai Chathanar",
     coverUrl: "",
@@ -40,6 +43,7 @@ const featuredBooks = [
   },
   {
     id: "4",
+    slug: "tirukkural",
     title: "Tirukkural",
     authorName: "Thiruvalluvar",
     coverUrl: "",
@@ -51,6 +55,7 @@ const featuredBooks = [
   },
   {
     id: "5",
+    slug: "kamba-ramayanam",
     title: "Kamba Ramayanam",
     authorName: "Kambar",
     coverUrl: "",

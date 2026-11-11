@@ -277,7 +277,7 @@ function EmptySearchState({ query }: { query: string }) {
       <div className="mt-8 pt-6 border-t border-border">
         <p className="text-sm text-muted-foreground">
           No results found for{" "}
-          <span className="font-semibold text-foreground">"{query}"</span>
+          <span className="font-semibold text-foreground">&quot;{query}&quot;</span>
         </p>
       </div>
     </div>

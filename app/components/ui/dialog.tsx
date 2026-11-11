@@ -101,10 +101,9 @@ const DialogContent = React.forwardRef<
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, children, ...props }, ref) => {
   const ctx = React.useContext(DialogContext);
-  if (!ctx || !ctx.open) return null;
 
   React.useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !ctx?.open) return;
 
     // Track open dialogs globally to support nested dialogs
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -151,7 +150,9 @@ const DialogContent = React.forwardRef<
         delete window.__dialogOpenCount;
       }
     };
-  }, []);
+  }, [ctx?.open]);
+
+  if (!ctx || !ctx.open) return null;
 
   return (
     <DialogPortal>

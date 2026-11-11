@@ -194,7 +194,7 @@ export function TodaysBest() {
                 </p>
 
                 <blockquote className="mt-3 border-l-2 pl-3 text-sm italic text-muted-foreground">
-                  ⭐ "Deeply moving and beautifully written." — The Hindu
+                  ⭐ &quot;Deeply moving and beautifully written.&quot; — The Hindu
                 </blockquote>
               </div>
             </div>
@@ -246,7 +246,7 @@ function EmptySearchState({ query }: { query: string }) {
       <div className="mt-8 pt-6 border-t border-border">
         <p className="text-sm text-muted-foreground">
           No results found for{" "}
-          <span className="font-semibold text-foreground">"{query}"</span>
+          <span className="font-semibold text-foreground">&quot;{query}&quot;</span>
         </p>
       </div>
     </div>

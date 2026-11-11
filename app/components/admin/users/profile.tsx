@@ -85,7 +85,6 @@ export default function UserProfile({
     } else {
       // fallback: log the updated user
       // In a real app you'd call an API here.
-      // eslint-disable-next-line no-console
       console.log("save user", form, avatarFile);
     }
   }

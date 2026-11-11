@@ -1,7 +1,29 @@
 import { twMerge } from "tailwind-merge";
 
-export function cn(...classes: Array<string | false | null | undefined>) {
-  return twMerge(classes.filter(Boolean).join(" "));
+type ClassValue =
+  | string
+  | false
+  | null
+  | undefined
+  | Record<string, boolean>
+  | ClassValue[];
+
+export function cn(...classes: ClassValue[]) {
+  const classNames = classes.flatMap((value): string[] => {
+    if (!value) return [];
+    if (typeof value === "string") return [value];
+    if (Array.isArray(value)) {
+      return value.flatMap((item) => {
+        const className = cn(item);
+        return className ? [className] : [];
+      });
+    }
+    return Object.entries(value)
+      .filter(([, enabled]) => enabled)
+      .map(([className]) => className);
+  });
+
+  return twMerge(classNames.join(" "));
 }
 
 export const CloseIcon = ({ className }: { className?: string }) => (

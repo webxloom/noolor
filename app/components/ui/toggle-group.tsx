@@ -8,7 +8,7 @@ import {
   toggleVariants,
   type ToggleVariant,
   type ToggleSize,
-} from "@/components/ui/toggle";
+} from "@/app/components/ui/toggle";
 
 type ToggleContextValue = { variant?: ToggleVariant; size?: ToggleSize };
 

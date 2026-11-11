@@ -123,7 +123,7 @@ export function useBookSubmit({
 
       setIsSaving(true);
       try {
-        let nextForm = { ...form } as any;
+        const nextForm = { ...form } as any;
 
         const pathsToRemove: string[] = [];
 

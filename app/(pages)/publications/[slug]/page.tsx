@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
 import { getPublicationsBySlugQuery } from "@/lib/db/publications/publications-queries";
@@ -51,12 +52,12 @@ export default async function PublicationDetailPage({
     <div className="container mx-auto px-4 py-8">
       {/* Back to authors */}
       <div className="mb-4">
-        <a
+        <Link
           href="/publications"
           className="text-sm text-primary hover:underline"
         >
           &larr; Back to Publications list
-        </a>
+        </Link>
       </div>
       <PublicationDashboard userId={data.profile_id} canEdit={false} />
     </div>

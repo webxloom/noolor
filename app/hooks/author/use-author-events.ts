@@ -8,7 +8,7 @@ export function useAuthorEvents(profileId: string | null) {
   const list = useEventsList(profileId);
   const state = useEventState();
   const submit = useEventSubmit({
-    profileId: profileId,
+    hostId: profileId,
     events: list.events,
     setEvents: list.setEvents,
     editingEventId: state.editingEventId,
@@ -23,7 +23,7 @@ export function useAuthorEvents(profileId: string | null) {
   return {
     // list
     activeTab: list.activeTab,
-    profileId: list.profileId,
+    profileId,
     events: list.events,
     clearCoverFile: state.clearCoverFile,
     coverFileName: state.coverFile?.name ?? null,

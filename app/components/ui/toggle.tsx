@@ -20,7 +20,7 @@ const toggleSizeClasses: Record<string, string> = {
 export type ToggleVariant = keyof typeof toggleVariantClasses;
 export type ToggleSize = keyof typeof toggleSizeClasses;
 
-export function toggleVariants({
+function toggleVariants({
   variant = "default",
   size = "default",
   className,

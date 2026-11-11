@@ -45,7 +45,6 @@ export default function RoleImage({
         fileToUpload = await resizeImageToPortrait(file, 375, 612);
       } catch (err) {
         // if resizing fails, fall back to original file
-        // eslint-disable-next-line no-console
         console.warn("Image resize failed, uploading original:", err);
         fileToUpload = file;
       }

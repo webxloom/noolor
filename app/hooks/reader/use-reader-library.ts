@@ -75,7 +75,6 @@ export function useReaderLibrary() {
         ];
         for (const key of allowed) {
           if (Object.prototype.hasOwnProperty.call(payload, key)) {
-            // @ts-ignore
             patch[key] =
               (payload as any)[key] === undefined
                 ? null

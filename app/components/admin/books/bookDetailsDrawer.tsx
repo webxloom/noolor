@@ -1,7 +1,5 @@
 "use client";
 import { useEffect } from "react";
-import BooksEditor from "../../authors/author-dashboard/books/book-editor";
-import { AuthorBooksProvider } from "@/app/contexts/books-context";
 import { useAuthorBooks } from "@/app/hooks/author/use-author-books";
 
 type Props = {
@@ -47,9 +45,9 @@ export default function BookDetailsDrawer({ book, open, onClose }: Props) {
       </div>
 
       <div className="p-4 space-y-4 bg-white dark:bg-gray-900">
-        <AuthorBooksProvider value={booksDetails}>
+        {/* <AuthorBooksProvider value={booksDetails}>
           <BooksEditor bookId={book.id} action="edit" onClose={() => false} />
-        </AuthorBooksProvider>
+        </AuthorBooksProvider> */}
       </div>
     </div>
   );

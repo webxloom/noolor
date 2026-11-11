@@ -110,7 +110,7 @@ export default function Home() {
             Join the Literary Commons
           </h2>
           <p className="text-primary-foreground/80 text-lg mb-10">
-            Whether you're an author sharing your craft, a publication
+            Whether you&apos;re an author sharing your craft, a publication
             showcasing your catalog, or a reader exploring new worlds — there is
             a place for you here.
           </p>

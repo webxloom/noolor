@@ -29,7 +29,7 @@ export default function UserImage({
     setUploading(true);
 
     try {
-      let fileToUpload = file;
+      const fileToUpload = file;
 
       const formData = new FormData();
       formData.append("file", fileToUpload);

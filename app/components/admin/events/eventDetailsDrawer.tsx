@@ -1,7 +1,5 @@
 "use client";
-import { AuthorEventsProvider } from "@/app/contexts/events-context";
 import { useEffect } from "react";
-import EventsEditor from "../../authors/author-dashboard/events/events-editor";
 import { useAuthorEvents } from "@/app/hooks/author/use-author-events";
 
 type Props = {
@@ -46,13 +44,13 @@ export default function EventDetailsDrawer({ event, open, onClose }: Props) {
       </div>
 
       <div className="p-4 space-y-4 bg-white dark:bg-gray-900">
-        <AuthorEventsProvider value={eventsDetail}>
+        {/* <AuthorEventsProvider value={eventsDetail}>
           <EventsEditor
             eventId={event.id}
             action="edit"
             onClose={() => false}
           />
-        </AuthorEventsProvider>
+        </AuthorEventsProvider> */}
       </div>
     </div>
   );

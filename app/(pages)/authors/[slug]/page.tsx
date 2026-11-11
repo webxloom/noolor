@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 
 import { getAuthorBySlugQuery } from "@/lib/db/authors/authors-queries";
@@ -53,9 +54,9 @@ export default async function AuthorDetailPage({
     <div className="container mx-auto px-4 py-8">
       {/* Back to authors */}
       <div className="mb-4">
-        <a href="/authors" className="text-sm text-primary hover:underline">
+        <Link href="/authors" className="text-sm text-primary hover:underline">
           &larr; Back to Authors list
-        </a>
+        </Link>
       </div>
       <AuthorDashboard userId={data.profile_id} canEdit={false} />
     </div>

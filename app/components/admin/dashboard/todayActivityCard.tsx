@@ -59,7 +59,7 @@ export default function TodayActivityCard({ activities, loading }: Props) {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Today's Activity
+            Today&apos;s Activity
           </h2>
         </div>
       </div>

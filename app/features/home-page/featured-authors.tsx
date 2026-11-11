@@ -7,6 +7,7 @@ const featuredAuthors = [
   {
     id: "1",
     name: "Kalki Krishnamurthy",
+    slug: "kalki-krishnamurthy",
     avatarUrl: "",
     location: "Chennai",
     bookCount: 45,
@@ -16,6 +17,7 @@ const featuredAuthors = [
   {
     id: "2",
     name: "Ilango Adigal",
+    slug: "ilango-adigal",
     avatarUrl: "",
     location: "Tamil Nadu",
     bookCount: 12,
@@ -25,6 +27,7 @@ const featuredAuthors = [
   {
     id: "3",
     name: "Chithalai Chathanar",
+    slug: "chithalai-chathanar",
     avatarUrl: "",
     location: "Madurai",
     bookCount: 28,
@@ -34,6 +37,7 @@ const featuredAuthors = [
   {
     id: "4",
     name: "Thiruvalluvar",
+    slug: "thiruvalluvar",
     avatarUrl: "",
     location: "Tamil Nadu",
     bookCount: 5,

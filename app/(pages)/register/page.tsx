@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useProfileSession } from "@/app/hooks/use-profile-session";
 import Register from "@/app/components/register";
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const { profileUser, isLoading } = useProfileSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -33,4 +33,12 @@ export default function RegisterPage() {
   }
 
   return <Register inviteId={inviteId ?? undefined} />;
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterPageContent />
+    </Suspense>
+  );
 }

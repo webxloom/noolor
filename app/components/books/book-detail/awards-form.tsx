@@ -82,7 +82,7 @@ export default function BookAwardsForm({
 
       {awards.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          No awards added yet. Click "Add award" to get started.
+          No awards added yet. Click &quot;Add award&quot; to get started.
         </p>
       )}
 

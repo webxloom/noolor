@@ -87,7 +87,6 @@ export default function ReaderLibrary({
             >
               <div className="relative h-28 w-20 flex-shrink-0 overflow-hidden rounded">
                 {book?.cover_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <Image
                     src={book.cover_url}
                     alt={book.title}

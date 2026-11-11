@@ -98,10 +98,7 @@ const MenubarContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(
-  (
-    { className, align = "start", alignOffset = -4, sideOffset = 8, ...props },
-    ref,
-  ) => (
+  ({ className, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(

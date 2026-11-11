@@ -147,9 +147,7 @@ export function useAuthorBooks(
   function startEdit(book: BookRecord) {
     setEditingBookId(book.id);
     setForm(mapBookToForm(book));
-    setQuoteInput(
-      (mapBookToForm(book).quotes && mapBookToForm(book).quotes[0]) || "",
-    );
+    setQuoteInput(mapBookToForm(book).quote || "");
     setEditorSection("details");
     setAssetFiles(emptyAssetFiles());
     setActiveTab("editor");
@@ -162,11 +160,7 @@ export function useAuthorBooks(
       return;
     }
 
-    // Replace quotes array with single quote
-    setForm((current) => ({
-      ...current,
-      quotes: [nextQuote],
-    }));
+    setForm((current) => ({ ...current, quote: nextQuote }));
     setQuoteInput("");
   }
 
@@ -250,7 +244,7 @@ export function useAuthorBooks(
 
   function removeQuote(index: number) {
     // Clear all quotes (single-quote model)
-    setForm((current) => ({ ...current, quotes: [] }));
+    setForm((current) => ({ ...current, quote: "" }));
     setQuoteInput("");
   }
 
@@ -314,8 +308,7 @@ export function useAuthorBooks(
       const pendingQuote = quoteInput.trim();
       let nextForm = {
         ...form,
-        // For now we only support a single sample quote — replace the array when updated
-        quotes: pendingQuote ? [pendingQuote].filter(Boolean) : form.quotes,
+        quote: pendingQuote || form.quote,
       };
 
       for (const field of Object.keys(assetFiles) as BookAssetField[]) {

@@ -1,11 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import styles from "./style.module.css";
 
-interface ToastProps {
+export interface ToastProps {
   message: string;
   type: "success" | "error" | "info" | "warning";
   onClose: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
+
+export type ToastActionElement = React.ReactNode;
 
 const ToastContainer = ({
   type,

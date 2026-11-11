@@ -1,8 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { AuthorBlogsProvider } from "@/app/contexts/blogs-context";
 import { useAuthorBlogs } from "@/app/hooks/author/use-author-blogs";
-import BlogEditor from "../../authors/author-dashboard/blogs/blog-editor";
 
 type Props = {
   blog: any;
@@ -46,9 +44,9 @@ export default function BlogDetailsDrawer({ blog, open, onClose }: Props) {
       </div>
 
       <div className="p-4 space-y-4 bg-white dark:bg-gray-900">
-        <AuthorBlogsProvider value={blogsDetail}>
+        {/* <AuthorBlogsProvider value={blogsDetail}>
           <BlogEditor blogId={blog.id} action="edit" onClose={() => false} />
-        </AuthorBlogsProvider>
+        </AuthorBlogsProvider> */}
       </div>
     </div>
   );

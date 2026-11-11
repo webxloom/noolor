@@ -12,9 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
 import ReaderLibrary from "../../readers/reader-library";
 import AuthorDetail from "./author-details";
 import { AuthorRecord } from "@/lib/types/authors";
-import { AuthorBooksTab } from "../../authors/author-dashboard/books";
-import { AuthorBlogsTab } from "../../authors/author-dashboard/blogs";
-import { AuthorEventsTab } from "../../authors/author-dashboard/events";
 
 type Props = {
   user: any;
@@ -124,8 +121,6 @@ export default function UserDetailsDrawer({ user, open, onClose }: Props) {
     };
   }, [open, user]);
 
-  if (!open) return null;
-
   const tabs = useMemo(() => {
     const baseTabs = [{ label: "Profile", value: "profile" }];
     if (readerLib.length > 0) {
@@ -148,6 +143,8 @@ export default function UserDetailsDrawer({ user, open, onClose }: Props) {
     }
     return baseTabs;
   }, [readerLib, author, publication, books, blogs, events]);
+
+  if (!open) return null;
 
   return (
     <div className="h-full w-full overflow-auto">
@@ -202,23 +199,23 @@ export default function UserDetailsDrawer({ user, open, onClose }: Props) {
                 )}
 
                 {/* Books */}
-                {activeTab === "books" && (
+                {/* {activeTab === "books" && (
                   <AuthorBooksTab
                     canEdit={true}
                     authorId={author?.id ?? publication?.id ?? ""}
                     isPublication={author?.id ? false : true}
                   />
-                )}
+                )} */}
 
                 {/* Blogs */}
-                {activeTab === "blogs" && (
+                {/* {activeTab === "blogs" && (
                   <AuthorBlogsTab canEdit={true} authorId={user.id} />
-                )}
+                )} */}
 
                 {/* Events */}
-                {activeTab === "events" && (
+                {/* {activeTab === "events" && (
                   <AuthorEventsTab canEdit={true} profileId={user.id} />
-                )}
+                )} */}
               </TabsContent>
             </Tabs>
           </>

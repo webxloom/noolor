@@ -96,7 +96,7 @@ export default function ForgotPasswordForm() {
             {accountVerified && !otpVerified && (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  We've sent a verification code to{" "}
+                  We&apos;ve sent a verification code to{" "}
                   {userContact?.email || userContact?.phone}
                 </p>
                 <OtpVerification
